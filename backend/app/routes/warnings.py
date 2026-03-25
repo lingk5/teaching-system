@@ -298,6 +298,11 @@ def generate_warnings():
     try:
         # 这里应该调用新的 WarningEngine
         from ..services.warning_engine import WarningEngine
+
+        active_before = Warning.query.filter_by(
+            type='comprehensive',
+            status='active'
+        ).count()
         
         # 简单起见，对所有课程执行检查
         # 实际场景可能需要根据当前教师的课程来检查
@@ -309,9 +314,29 @@ def generate_warnings():
             warnings = engine.check_all_students()
             total_generated += len(warnings)
 
+        active_after = Warning.query.filter_by(
+            type='comprehensive',
+            status='active'
+        ).count()
+
+        if active_after > active_before:
+            summary = f'新增 {active_after - active_before} 条活跃预警'
+        elif active_after < active_before:
+            summary = f'自动关闭 {active_before - active_after} 条误报/过期预警'
+        else:
+            summary = '活跃预警数量无变化'
+
         return jsonify({
             'success': True,
-            'message': f'预警检查完成，更新了 {total_generated} 条预警记录'
+            'message': (
+                f'预警检查完成，当前活跃预警 {active_after} 条；'
+                f'{summary}。'
+            ),
+            'data': {
+                'generated_count': total_generated,
+                'active_before': active_before,
+                'active_after': active_after
+            }
         })
 
     except Exception as e:

@@ -26,6 +26,7 @@ class WarningEngine:
     
     # --- 内部常量 ---
     TIME_DELTA_DAYS = 30 # 分析最近30天的数据
+    MIN_REQUIRED_DIMENSIONS = 2
 
     def __init__(self, course_id):
         self.course_id = course_id
@@ -37,14 +38,21 @@ class WarningEngine:
             return []
 
         warnings_generated = []
+        has_changes = False
         for student in students:
             warning = self._generate_warning_for_student(student)
             if warning:
                 warnings_generated.append(warning)
+                has_changes = True
+
+            if db.session.dirty or db.session.deleted:
+                has_changes = True
         
-        # 批量保存
+        # 除了新增预警，也要提交已更新或已自动关闭的预警
         if warnings_generated:
-            db.session.bulk_save_objects(warnings_generated)
+            db.session.add_all(warnings_generated)
+
+        if has_changes:
             db.session.commit()
             
         return warnings_generated
@@ -60,18 +68,41 @@ class WarningEngine:
         # 1. 计算各项指标得分 (0-100)
         metrics = self._calculate_metrics(student.id)
         
+        available_metrics = self._get_available_metrics(metrics)
+        metrics['available_dimensions'] = available_metrics
+
+        if len(available_metrics) < self.MIN_REQUIRED_DIMENSIONS:
+            self._clear_active_warning(
+                student.id,
+                f"系统重新计算后发现有效指标不足 {self.MIN_REQUIRED_DIMENSIONS} 项，已自动关闭综合预警。"
+            )
+            return None
+
         # 2. 计算综合分
         score = self._calculate_comprehensive_score(metrics)
+        if score is None:
+            self._clear_active_warning(
+                student.id,
+                "系统重新计算后暂无可用于综合评分的有效过程数据，已自动关闭综合预警。"
+            )
+            return None
+
         metrics['comprehensive_score'] = round(score, 2)
         
         # 3. 判断预警等级
         level = self._determine_warning_level(score)
         
         if not level:
+            self._clear_active_warning(
+                student.id,
+                "系统重新计算后未达到综合预警阈值，已自动关闭综合预警。"
+            )
             return None # 无需预警
 
         # 4. 生成预警原因和建议
-        reason, suggestion = self._generate_reason_and_suggestion(metrics, score, level)
+        reason, suggestion = self._generate_reason_and_suggestion(
+            metrics, score, level, available_metrics
+        )
         
         # 5. 检查并创建/更新预警记录
         return self._create_or_update_warning(student.id, level, reason, suggestion, metrics)
@@ -101,7 +132,7 @@ class WarningEngine:
             Attendance.course_id == self.course_id,
             Attendance.date.between(start.date(), end.date())
         ).scalar()
-        return float(avg_score) if avg_score is not None else 100.0 # 默认满分
+        return float(avg_score) if avg_score is not None else None
 
     def _calculate_homework_score(self, student_id, start, end):
         """计算作业平均分 (按百分制折算)"""
@@ -110,7 +141,7 @@ class WarningEngine:
             Homework.course_id == self.course_id,
             Homework.created_at.between(start, end)
         ).scalar()
-        return float(avg_score) if avg_score is not None else 100.0
+        return float(avg_score) if avg_score is not None else None
 
     def _calculate_quiz_score(self, student_id, start, end):
         """计算测验平均分 (按百分制折算)"""
@@ -119,7 +150,7 @@ class WarningEngine:
             Quiz.course_id == self.course_id,
             Quiz.created_at.between(start, end)
         ).scalar()
-        return float(avg_score) if avg_score is not None else 100.0
+        return float(avg_score) if avg_score is not None else None
 
     def _calculate_interaction_score(self, student_id, start, end):
         """计算互动得分 (每次互动+10分，100分封顶)"""
@@ -127,14 +158,29 @@ class WarningEngine:
             Interaction.student_id == student_id,
             Interaction.course_id == self.course_id,
             Interaction.date.between(start.date(), end.date())
-        ).scalar() or 0
+        ).scalar()
+        if count is None:
+            return None
         return min(count * 10, 100)
 
+    def _get_available_metrics(self, metrics):
+        """返回当前可用于综合评分的指标名称"""
+        return [key for key in self.WEIGHTS if metrics.get(key) is not None]
+
     def _calculate_comprehensive_score(self, metrics):
-        """根据权重计算综合分"""
+        """仅基于已采集数据计算综合分，并对权重重新归一化"""
+        available_metrics = self._get_available_metrics(metrics)
+        if not available_metrics:
+            return None
+
+        total_weight = sum(self.WEIGHTS[key] for key in available_metrics)
+        if total_weight <= 0:
+            return None
+
         score = 0
-        for key, weight in self.WEIGHTS.items():
-            score += metrics.get(key, 0) * weight
+        for key in available_metrics:
+            normalized_weight = self.WEIGHTS[key] / total_weight
+            score += metrics[key] * normalized_weight
         return score
 
     def _determine_warning_level(self, score):
@@ -147,10 +193,13 @@ class WarningEngine:
             return 'yellow'
         return None
 
-    def _generate_reason_and_suggestion(self, metrics, score, level):
+    def _generate_reason_and_suggestion(self, metrics, score, level, available_metrics):
         """生成预警原因和干预建议"""
         # 找出最低分的项
-        low_items = sorted(metrics.items(), key=lambda item: item[1])
+        low_items = sorted(
+            ((key, metrics[key]) for key in available_metrics),
+            key=lambda item: item[1]
+        )
         lowest_metric, lowest_score = low_items[0]
         
         metric_map = {
@@ -160,7 +209,13 @@ class WarningEngine:
             'interaction': '课堂互动'
         }
         
-        reason = f"综合评分 {score:.1f} 分，等级为{level}。主要短板在于【{metric_map[lowest_metric]}】({lowest_score:.1f}分)。"
+        used_metrics = '、'.join(metric_map[key] for key in available_metrics)
+
+        reason = (
+            f"基于当前已采集的 {len(available_metrics)} 项指标（{used_metrics}）计算，"
+            f"综合评分 {score:.1f} 分，等级为{level}。"
+            f"主要短板在于【{metric_map[lowest_metric]}】({lowest_score:.1f}分)。"
+        )
         
         suggestions = {
             'red': "情况紧急，建议立即与学生进行一对一深入沟通，了解其学习或生活上遇到的困难，并制定详细的帮扶计划。",
@@ -170,6 +225,22 @@ class WarningEngine:
         suggestion = suggestions[level]
         
         return reason, suggestion
+
+    def _clear_active_warning(self, student_id, note):
+        """当学生不再满足综合预警条件时，自动关闭旧的活跃预警"""
+        existing_warning = Warning.query.filter_by(
+            student_id=student_id,
+            course_id=self.course_id,
+            type='comprehensive',
+            status='active'
+        ).first()
+
+        if not existing_warning:
+            return
+
+        existing_warning.status = 'ignored'
+        existing_warning.handled_at = datetime.now()
+        existing_warning.handle_note = note
 
     def _create_or_update_warning(self, student_id, level, reason, suggestion, metrics):
         """创建或更新预警记录，避免重复"""
