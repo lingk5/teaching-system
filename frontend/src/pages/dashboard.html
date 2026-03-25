@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教师仪表盘 - 教学效果监督系统</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- 引入全局配置和工具 -->
+    <script src="../js/config.js"></script>
+    <script src="../js/request.js"></script>
+    <script src="../js/auth.js"></script>
+
+    <!-- 图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .sidebar {
+            position: fixed; left: 0; top: 0; bottom: 0; width: 260px;
+            background: #1e293b; color: white; overflow-y: auto; z-index: 1000;
+            display: flex; flex-direction: column;
+        }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h4 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .sidebar-menu { padding: 15px 0; flex: 1; }
+        .menu-item {
+            padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+            color: rgba(255,255,255,0.7); text-decoration: none; transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        .menu-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .menu-item.active { background: rgba(102, 126, 234, 0.2); color: white; border-left-color: #667eea; }
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .avatar { width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .user-name { font-weight: 600; font-size: 14px; }
+        .user-role { font-size: 12px; opacity: 0.7; }
+        .btn-logout { width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; font-size: 13px; cursor: pointer; }
+        .btn-logout:hover { background: rgba(255,255,255,0.2); }
+
+        .main-content { margin-left: 260px; padding: 30px; }
+
+        .stat-card {
+            background: white; border-radius: 16px; padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: transform 0.2s; height: 100%;
+        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .stat-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; margin-bottom: 16px;
+        }
+        .stat-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; color: #1e293b; }
+        .stat-label { color: #64748b; font-size: 14px; }
+
+        /* 修复图表容器样式 */
+        .chart-container {
+            background: white; border-radius: 16px; padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px;
+            display: flex; flex-direction: column;
+        }
+        .chart-wrapper {
+            position: relative;
+            flex: 1;
+            min-height: 300px; /* 给一个最小高度 */
+            max-height: 300px; /* 限制最大高度 */
+            width: 100%;
+        }
+
+        .chart-title { font-size: 16px; font-weight: 600; color: #1e293b; margin-bottom: 20px; }
+
+        .student-table th { font-weight: 600; color: #64748b; border-bottom-width: 1px; }
+        .student-table td { vertical-align: middle; color: #334155; }
+
+        .warning-badge {
+            padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+        }
+        .warning-red { background: #fee2e2; color: #dc2626; }
+        .warning-orange { background: #ffedd5; color: #ea580c; }
+        .warning-yellow { background: #fef3c7; color: #d97706; }
+    </style>
+
+    <script>
+        // 路由守卫
+        try {
+            if (typeof checkAuth === 'function') checkAuth();
+        } catch (e) {
+            console.error('Auth check failed:', e);
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+<body>
+    <!-- 统一侧边栏 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h4><i class="bi bi-mortarboard-fill"></i> 教学监督系统</h4>
+        </div>
+
+        <div class="sidebar-menu">
+            <a href="dashboard.html" class="menu-item active" id="nav-dashboard">
+                <i class="bi bi-speedometer2"></i> 仪表盘
+            </a>
+            <a href="courses.html" class="menu-item" id="nav-courses">
+                <i class="bi bi-book"></i> 课程管理
+            </a>
+            <a href="students.html" class="menu-item" id="nav-students">
+                <i class="bi bi-people"></i> 学生管理
+            </a>
+            <a href="data-import.html" class="menu-item" id="nav-import">
+                <i class="bi bi-upload"></i> 数据导入
+            </a>
+            <a href="analytics.html" class="menu-item"  id="nav-analytics">
+                <i class="bi bi-graph-up"></i> 学情分析
+            </a>
+            <a href="warnings.html" class="menu-item" id="nav-warnings">
+                <i class="bi bi-exclamation-triangle"></i> 预警中心
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="avatar"><i class="bi bi-person-fill"></i></div>
+                <div>
+                    <div id="userName" class="user-name">加载中...</div>
+                    <div class="user-role">教师</div>
+                </div>
+            </div>
+            <button onclick="logout()" class="btn-logout">
+                <i class="bi bi-box-arrow-right"></i> 退出登录
+            </button>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <!-- 顶部导航 -->
+        <nav class="navbar navbar-light bg-white rounded shadow-sm mb-4 p-3">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1 fs-5">教师仪表盘</span>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-primary btn-sm" onclick="refreshData()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>刷新数据
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="checkWarnings()">
+                        <i class="bi bi-lightning-charge me-1"></i>生成预警
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 统计卡片 -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <div class="stat-value" id="studentCount">-</div>
+                    <div class="stat-label">学生总数</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                    <div class="stat-value" id="attendanceRate">-%</div>
+                    <div class="stat-label">平均出勤率</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-file-earmark-text-fill"></i>
+                    </div>
+                    <div class="stat-value" id="homeworkRate">-%</div>
+                    <div class="stat-label">作业完成率</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div class="stat-value text-danger" id="warningCount">-</div>
+                    <div class="stat-label">预警学生</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-8">
+                <div class="chart-container h-100">
+                    <h5 class="chart-title">本周出勤趋势</h5>
+                    <div class="chart-wrapper">
+                        <canvas id="attendanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="chart-container h-100">
+                    <h5 class="chart-title">预警分布</h5>
+                    <div class="chart-wrapper">
+                        <canvas id="warningChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 高风险学生列表 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="chart-container">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="chart-title mb-0"><i class="bi bi-exclamation-circle-fill me-2 text-danger"></i>高风险学生预警</h5>
+                        <a href="warnings.html" class="btn btn-sm btn-outline-primary">查看全部</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table student-table mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>学号</th>
+                                    <th>姓名</th>
+                                    <th>班级</th>
+                                    <th>预警等级</th>
+                                    <th>风险原因</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="warningTable">
+                                <tr><td colspan="6" class="text-center text-muted">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 脚本逻辑 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. 显示用户名
+            try {
+                const userInfoStr = localStorage.getItem('userInfo');
+                const user = userInfoStr ? JSON.parse(userInfoStr) : {};
+                document.getElementById('userName').textContent = user.name || user.username || '教师';
+            } catch (error) {
+                console.error('加载用户信息失败:', error);
+            }
+
+            // 2. 加载数据
+            await refreshData();
+
+            // 3. 初始化图表
+            initCharts();
+        });
+
+        async function refreshData() {
+            try {
+                // 并行请求：统计数据 + 预警列表
+                const [statsRes, warningsRes] = await Promise.allSettled([
+                    request.get('/status'),
+                    request.get('/warnings/', { page: 1, per_page: 5, level: 'red' })
+                ]);
+
+                // 处理统计数据
+                if (statsRes.status === 'fulfilled') {
+                    const stats = statsRes.value.stats;
+                    updateStat('studentCount', stats.students);
+                    updateStat('warningCount', stats.warnings);
+                    // 出勤率和作业率后端暂时没返回，先模拟
+                    updateStat('attendanceRate', '85%');
+                    updateStat('homeworkRate', '92%');
+                }
+
+                // 处理预警列表
+                if (warningsRes.status === 'fulfilled') {
+                    renderWarnings(warningsRes.value.warnings);
+                }
+
+            } catch (error) {
+                console.error('刷新数据失败:', error);
+            }
+        }
+
+        function updateStat(id, val) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val ?? '-';
+        }
+
+        function renderWarnings(warnings) {
+            const tbody = document.getElementById('warningTable');
+            if (!warnings || warnings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">暂无高风险预警</td></tr>';
+                return;
+            }
+
+            const html = warnings.map(w => `
+                <tr>
+                    <td>${w.student_no}</td>
+                    <td>${w.student_name}</td>
+                    <td>${w.class_name || '默认班级'}</td>
+                    <td>
+                        <span class="warning-badge warning-${w.level}">
+                            ${w.level === 'red' ? '红色' : w.level === 'orange' ? '橙色' : '黄色'}
+                        </span>
+                    </td>
+                    <td class="text-muted small" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
+                        ${w.reason}
+                    </td>
+                    <td>
+                        <a href="warnings.html" class="btn btn-sm btn-light text-primary">处理</a>
+                    </td>
+                </tr>
+            `).join('');
+
+            tbody.innerHTML = html;
+        }
+
+        // 运行预警检查
+        async function checkWarnings() {
+            if (!confirm('确定要重新计算所有学生的预警状态吗？这可能需要几秒钟。')) return;
+
+            try {
+                const res = await request.post('/warnings/generate');
+                alert(res.message);
+                refreshData(); // 重新加载数据
+            } catch (error) {
+                alert('预警检查失败: ' + error.message);
+            }
+        }
+
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 初始化图表 (Chart.js)
+        function initCharts() {
+            // 出勤趋势图
+            const ctxAtt = document.getElementById('attendanceChart');
+            if (ctxAtt) {
+                new Chart(ctxAtt, {
+                    type: 'line',
+                    data: {
+                        labels: ['周一', '周二', '周三', '周四', '周五'],
+                        datasets: [{
+                            label: '出勤率(%)',
+                            data: [95, 93, 88, 96, 94],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false, // 关键配置：允许图表填满自定义容器
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, max: 100 }
+                        }
+                    }
+                });
+            }
+
+            // 预警分布图
+            const ctxWarn = document.getElementById('warningChart');
+            if (ctxWarn) {
+                new Chart(ctxWarn, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['红色', '橙色', '黄色', '正常'],
+                        datasets: [{
+                            data: [5, 12, 8, 75],
+                            backgroundColor: ['#dc2626', '#ea580c', '#d97706', '#22c55e']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课程管理 - 教学监督系统</title>
+    <!-- 1. 引入基础样式库 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- 2. 引入项目全局配置和工具库 (顺序很重要) -->
+    <script src="../js/config.js"></script>
+    <script src="../js/request.js"></script> <!-- 封装好的请求库 -->
+    <script src="../js/auth.js"></script>    <!-- 认证检查逻辑 -->
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f5f7fa; }
+        
+        /* 统一侧边栏样式 */
+        .sidebar {
+            position: fixed; left: 0; top: 0; bottom: 0; width: 260px;
+            background: #1e293b; color: white; overflow-y: auto; z-index: 1000;
+            display: flex; flex-direction: column;
+        }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h4 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .sidebar-menu { padding: 15px 0; flex: 1; }
+        .menu-item {
+            padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+            color: rgba(255,255,255,0.7); text-decoration: none; transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        .menu-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .menu-item.active { background: rgba(102, 126, 234, 0.2); color: white; border-left-color: #667eea; }
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .avatar { width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .user-name { font-weight: 600; font-size: 14px; }
+        .user-role { font-size: 12px; opacity: 0.7; }
+        .btn-logout { width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; font-size: 13px; cursor: pointer; }
+        .btn-logout:hover { background: rgba(255,255,255,0.2); }
+        .main-content { margin-left: 260px; padding: 30px; background: #f5f7fa; min-height: 100vh; }
+        
+        /* 课程管理特有样式 */
+        .page-header { margin-bottom: 30px; }
+        .page-header h2 { color: #1e293b; margin-bottom: 8px; font-weight: 700; }
+        .page-header p { color: #64748b; margin: 0; }
+        
+        .course-card {
+            background: white; border-radius: 16px; padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px;
+            border: 1px solid #e2e8f0; transition: all 0.3s;
+        }
+        .course-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        
+        .course-header { 
+            display: flex; justify-content: space-between; align-items: flex-start; 
+            margin-bottom: 20px; cursor: pointer;
+        }
+        .course-title h4 { color: #1e293b; margin-bottom: 4px; font-size: 20px; font-weight: 600; }
+        .course-code { 
+            display: inline-block; padding: 2px 8px; background: #f1f5f9; 
+            color: #475569; font-size: 12px; border-radius: 4px; margin-top: 4px;
+        }
+        .course-meta { color: #64748b; font-size: 14px; display: flex; gap: 16px; margin-top: 8px; }
+        
+        .stat-badges { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-badge {
+            padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .badge-students { background: #dbeafe; color: #1e40af; }
+        .badge-warnings { background: #fee2e2; color: #dc2626; }
+        .badge-rate { background: #d1fae5; color: #059669; }
+        
+        .classes-section { border-top: 1px solid #e2e8f0; padding-top: 20px; }
+        .section-title { 
+            font-size: 14px; color: #64748b; margin-bottom: 12px; 
+            display: flex; align-items: center; gap: 8px; cursor: pointer;
+            user-select: none;
+        }
+        .class-list { display: flex; flex-direction: column; gap: 10px; }
+        .class-item {
+            background: #f8fafc; padding: 12px 16px; border-radius: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid #e2e8f0; transition: all 0.2s;
+        }
+        .class-item:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .class-info h6 { margin: 0; color: #334155; font-size: 15px; font-weight: 600; }
+        .class-info small { color: #94a3b8; font-size: 13px; }
+        .class-stats { display: flex; gap: 16px; font-size: 13px; color: #64748b; }
+        
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; background: white; border-radius: 16px; }
+        .loading { text-align: center; padding: 40px; color: #64748b; }
+        
+        .rotate { transform: rotate(180deg); }
+        .chevron { transition: transform 0.3s; }
+    </style>
+
+    <script>
+        // 3. 路由守卫与初始化逻辑 (已优化)
+        try {
+            if (typeof checkAuth === 'function') {
+                checkAuth(); // 来自 auth.js
+            }
+        } catch (e) {
+            console.error('Auth check failed:', e);
+            window.location.href = 'login.html'; // 兜底跳转
+        }
+    </script>
+</head>
+<body>
+    <!-- 统一侧边栏 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h4><i class="bi bi-mortarboard-fill"></i> 教学监督系统</h4>
+        </div>
+        
+        <div class="sidebar-menu">
+            <a href="dashboard.html" class="menu-item" id="nav-dashboard">
+                <i class="bi bi-speedometer2"></i> 仪表盘
+            </a>
+            <a href="courses.html" class="menu-item" id="nav-courses">
+                <i class="bi bi-book"></i> 课程管理
+            </a>
+            <a href="students.html" class="menu-item" id="nav-students">
+                <i class="bi bi-people"></i> 学生管理
+            </a>
+            <a href="data-import.html" class="menu-item" id="nav-import">
+                <i class="bi bi-upload"></i> 数据导入
+            </a>
+            <a href="analytics.html" class="menu-item"  id="nav-analytics">
+                <i class="bi bi-graph-up"></i> 学情分析
+            </a>
+            <a href="warnings.html" class="menu-item" id="nav-warnings">
+                <i class="bi bi-exclamation-triangle"></i> 预警中心
+            </a>
+        </div>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="avatar"><i class="bi bi-person-fill"></i></div>
+                <div>
+                    <div id="userName" class="user-name">加载中...</div>
+                    <div class="user-role">教师</div>
+                </div>
+            </div>
+            <button onclick="logout()" class="btn-logout">
+                <i class="bi bi-box-arrow-right"></i> 退出登录
+            </button>
+        </div>
+    </div>
+
+    <!-- 添加班级模态框 -->
+    <div class="modal fade" id="addClassModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加新班级</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addClassForm">
+                        <div class="mb-3">
+                            <label for="className" class="form-label">班级名称</label>
+                            <input type="text" class="form-control" id="className" required placeholder="例如：计算机2101班">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="addClass()">添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="main-content">
+        <div class="page-header">
+            <h2><i class="bi bi-book me-2 text-primary"></i>课程管理</h2>
+            <p>管理您的课程、班级及学生信息</p>
+            <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+                <i class="bi bi-plus-circle me-2"></i>创建新课程
+            </button>
+        </div>
+
+        <div id="courseList">
+            <div class="loading">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">加载课程数据中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建课程模态框 -->
+    <div class="modal fade" id="createCourseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">创建新课程</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createCourseForm">
+                        <div class="mb-3">
+                            <label for="courseName" class="form-label">课程名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="courseName" required placeholder="例如：Python程序设计">
+                        </div>
+                        <div class="mb-3">
+                            <label for="courseCode" class="form-label">课程代码</label>
+                            <input type="text" class="form-control" id="courseCode" placeholder="例如：CS101 (选填)">
+                        </div>
+                        <div class="mb-3">
+                            <label for="courseSemester" class="form-label">学期</label>
+                            <input type="text" class="form-control" id="courseSemester" placeholder="例如：2024-2025-1">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="createCourse()">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 Bootstrap JS (用于模态框等交互) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // 全局变量
+        let currentCourseId = null;
+
+        // 设置当前操作的课程ID (供添加班级使用)
+        function setCurrentCourse(courseId) {
+            currentCourseId = courseId;
+        }
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. 高亮当前菜单
+            document.getElementById('nav-courses')?.classList.add('active');
+            
+            // 2. 显示用户名 (从 localStorage 获取)
+            try {
+                const userInfoStr = localStorage.getItem('userInfo');
+                const user = userInfoStr ? JSON.parse(userInfoStr) : {};
+                document.getElementById('userName').textContent = user.name || user.username || '教师';
+            } catch (error) {
+                console.error('加载用户信息失败:', error);
+                document.getElementById('userName').textContent = '教师';
+            }
+            
+            // 3. 加载课程列表
+            loadCourses();
+        });
+
+        // --- 核心业务逻辑 ---
+
+        /**
+         * 加载课程列表
+         * 使用 request.get 替代 fetch
+         */
+        async function loadCourses() {
+            try {
+                // 使用封装好的 request 对象发起请求
+                const response = await request.get('/courses/');
+                const courses = response.data || [];
+
+                if (courses.length === 0) {
+                    renderEmpty();
+                    return;
+                }
+
+                renderCourses(courses);
+
+            } catch (error) {
+                console.error('加载失败:', error);
+                document.getElementById('courseList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-circle-fill me-2"></i>
+                        加载课程数据失败：${error.message}
+                        <br>
+                        <small class="text-muted">请检查后端服务是否启动，或尝试刷新页面。</small>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * 创建新课程
+         * 使用 request.post 替代 fetch
+         */
+        async function createCourse() {
+            const courseName = document.getElementById('courseName').value.trim();
+            const courseCode = document.getElementById('courseCode').value.trim();
+            const courseSemester = document.getElementById('courseSemester').value.trim();
+
+            if (!courseName) {
+                alert('请输入课程名称');
+                return;
+            }
+
+            try {
+                // 构建请求数据
+                const payload = {
+                    name: courseName,
+                    code: courseCode,
+                    semester: courseSemester
+                };
+
+                // 发起 POST 请求
+                await request.post('/courses/', payload);
+
+                // 成功后：隐藏模态框、提示成功、刷新列表
+                const modalEl = document.getElementById('createCourseModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+
+                // 清空表单
+                document.getElementById('createCourseForm').reset();
+
+                alert('课程创建成功！'); // 后面可以换成 Toast
+                loadCourses(); // 刷新列表
+
+            } catch (error) {
+                console.error('创建课程失败:', error);
+                alert(`创建失败: ${error.message}`);
+            }
+        }
+
+        /**
+         * 添加班级
+         * 使用 request.post 替代 fetch
+         */
+        async function addClass() {
+            const className = document.getElementById('className').value.trim();
+
+            if (!className) {
+                alert('请输入班级名称');
+                return;
+            }
+
+            if (!currentCourseId) {
+                alert('未选中课程，请刷新重试');
+                return;
+            }
+
+            try {
+                // 发起 POST 请求
+                // URL: /courses/{id}/classes
+                await request.post(`/courses/${currentCourseId}/classes`, { name: className });
+
+                // 成功后处理
+                const modalEl = document.getElementById('addClassModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+
+                document.getElementById('addClassForm').reset();
+                
+                alert('班级添加成功！');
+                loadCourses(); // 刷新列表以显示新班级
+
+            } catch (error) {
+                console.error('添加班级失败:', error);
+                alert(`添加失败: ${error.message}`);
+            }
+        }
+
+        // --- 渲染逻辑 (UI) ---
+
+        function renderEmpty() {
+            document.getElementById('courseList').innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-inbox" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                    <h5>暂无课程数据</h5>
+                    <p>您可以点击右上角的“创建新课程”按钮开始使用</p>
+                </div>
+            `;
+        }
+        
+        function renderCourses(courses) {
+            const html = courses.map(course => `
+                <div class="course-card">
+                    <div class="course-header" onclick="toggleClasses(${course.id})">
+                        <div>
+                            <div class="course-title">
+                                <h4>${course.name}</h4>
+                                <span class="course-code">${course.code || '无课程代码'}</span>
+                            </div>
+                            <div class="course-meta">
+                                <span><i class="bi bi-person-badge"></i> ${course.teacher_name || '未分配教师'}</span>
+                                <span><i class="bi bi-calendar"></i> ${course.semester || '默认学期'}</span>
+                            </div>
+                        </div>
+                        <i class="bi bi-chevron-down chevron" id="arrow-${course.id}"></i>
+                    </div>
+                    
+                    <div class="stat-badges">
+                        <div class="stat-badge badge-students">
+                            <i class="bi bi-people"></i> ${course.student_count || 0} 名学生
+                        </div>
+                        <div class="stat-badge badge-warnings">
+                            <i class="bi bi-exclamation-triangle"></i> ${course.warning_count || 0} 人预警
+                        </div>
+                        <!-- 出勤率暂未实现真实计算 -->
+                        <div class="stat-badge badge-rate">
+                            <i class="bi bi-check-circle"></i> 状态正常
+                        </div>
+                    </div>
+                    
+                    <div class="classes-section" id="classes-${course.id}" style="display: none;">
+                        <div class="section-title" onclick="toggleClasses(${course.id})">
+                            <i class="bi bi-chevron-down chevron" id="class-arrow-${course.id}"></i>
+                            <span>包含班级 (${(course.classes || []).length})</span>
+                        </div>
+                        <div class="class-list">
+                            ${(course.classes || []).length > 0 
+                                ? course.classes.map(cls => `
+                                    <div class="class-item">
+                                        <div class="class-info">
+                                            <h6>${cls.name}</h6>
+                                            <small>${cls.student_count || 0} 人</small>
+                                        </div>
+                                        <div class="class-stats">
+                                            <span title="预警人数" class="${cls.warning_count > 0 ? 'text-danger fw-bold' : ''}">
+                                                <i class="bi bi-exclamation-circle"></i> ${cls.warning_count || 0} 预警
+                                            </span>
+                                        </div>
+                                    </div>
+                                `).join('')
+                                : '<div style="color: #94a3b8; padding: 12px; text-align: center;">暂无班级数据</div>'
+                            }
+                        </div>
+                        <button class="btn btn-secondary btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#addClassModal" onclick="setCurrentCourse(${course.id})">
+                            <i class="bi bi-plus-circle me-1"></i>添加班级
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('courseList').innerHTML = html;
+        }
+        
+        // 展开/折叠班级列表 (简单的 DOM 操作)
+        function toggleClasses(courseId) {
+            const el = document.getElementById(`classes-${courseId}`);
+            const arrow = document.getElementById(`arrow-${courseId}`);
+            const classArrow = document.getElementById(`class-arrow-${courseId}`);
+            
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+                arrow?.classList.add('rotate');
+                classArrow?.classList.add('rotate');
+            } else {
+                el.style.display = 'none';
+                arrow?.classList.remove('rotate');
+                classArrow?.classList.remove('rotate');
+            }
+        }
+
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教学效果监督系统</title>
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .status-card { 
+            margin-top: 100px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 15px;
+        }
+        .api-response {
+            background-color: #f8f9fa;
+            border-left: 4px solid #0d6efd;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            border-radius: 5px;
+        }
+    </style>
+    <script src="/js/auth.js"></script>
+    <script>
+        try {
+            if (typeof checkAuth === 'function') {
+                checkAuth();
+            }
+        } catch (e) {
+            console.error('Auth check failed:', e);
+        }
+    </script>
+
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card status-card">
+                    <div class="card-body text-center p-5">
+                        <h1 class="mb-4 text-primary">教学效果监督系统</h1>
+                        <p class="text-muted">基于Python的教学数据分析平台</p>
+                        
+                        <button id="testBtn" class="btn btn-primary btn-lg mt-3">
+                            测试后端连接
+                        </button>
+                        
+                        <div id="result" class="api-response text-start d-none">
+                            <h6>后端响应：</h6>
+                            <pre id="responseData"></pre>
+                        </div>
+
+                        <div class="mt-4 text-muted small">
+                            <span id="statusText">等待连接...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API基础地址（开发环境）
+        const API_BASE = 'http://127.0.0.1:5000/api';
+
+        document.getElementById('testBtn').addEventListener('click', async function() {
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = '连接中...';
+            
+            try {
+                // 调用后端API
+                const response = await fetch(`${API_BASE}/hello`);
+                const data = await response.json();
+                
+                // 显示结果
+                document.getElementById('responseData').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('result').classList.remove('d-none');
+                document.getElementById('statusText').innerHTML = 
+                    `<span class="text-success">✅ 后端连接正常 (${data.timestamp})</span>`;
+                
+            } catch (error) {
+                document.getElementById('statusText').innerHTML = 
+                    `<span class="text-danger">❌ 连接失败: ${error.message}</span>`;
+                alert('请确保后端服务已启动在 http://127.0.0.1:5000');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '测试后端连接';
+            }
+        });
+
+        // 页面加载时自动检查状态
+        window.addEventListener('load', async () => {
+            try {
+                const res = await fetch(`${API_BASE}/status`);
+                const data = await res.json();
+                document.getElementById('statusText').innerHTML = 
+                    `<span class="text-success">✅ 后端服务运行中 (${data.time})</span>`;
+            } catch(e) {
+                document.getElementById('statusText').innerHTML = 
+                    `<span class="text-warning">⚠️ 后端未启动</span>`;
+            }
+        });
+    </script>
+</body>
+</html>
