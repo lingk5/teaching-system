@@ -8,6 +8,10 @@ from ..services.warning_engine import WarningEngine
 
 analytics_bp = Blueprint('analytics', __name__)
 
+
+def _safe_round(value, digits=1):
+    return round(value, digits) if value is not None else None
+
 @analytics_bp.route('/course/<int:course_id>/overview')
 def course_overview(course_id):
     """课程概览数据"""
@@ -150,12 +154,12 @@ def student_profile(course_id, student_id):
                 'name': student.name,
                 'student_no': student.student_no,
                 'class_name': student.class_.name if student.class_ else '',
-                'score': round(score, 1)
+                'score': _safe_round(score, 1)
             },
-            'attendance': {'rate': round(metrics['attendance'], 1)},
-            'homework': {'avg_score': round(metrics['homework'], 1)},
-            'quiz': {'avg_score': round(metrics['quiz'], 1)},
-            'interaction': {'total': round(metrics['interaction'], 1)},
+            'attendance': {'rate': _safe_round(metrics['attendance'], 1)},
+            'homework': {'avg_score': _safe_round(metrics['homework'], 1)},
+            'quiz': {'avg_score': _safe_round(metrics['quiz'], 1)},
+            'interaction': {'total': _safe_round(metrics['interaction'], 1)},
             'trend': {
                 'labels': trend_labels,
                 'scores': trend_scores

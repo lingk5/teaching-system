@@ -738,6 +738,16 @@
                 const res = await request.get(`/analytics/course/${courseId}/students/${studentId}/profile`);
                 const data = res.data;
                 const s = data.student;
+                const displayScore = s.score ?? '-';
+                const attendanceRate = data.attendance.rate ?? '-';
+                const homeworkScore = data.homework.avg_score ?? '-';
+                const quizScore = data.quiz.avg_score ?? '-';
+                const interactionTotal = data.interaction.total ?? '-';
+                const radarScore = s.score ?? 0;
+                const radarAttendance = data.attendance.rate ?? 0;
+                const radarHomework = data.homework.avg_score ?? 0;
+                const radarQuiz = data.quiz.avg_score ?? 0;
+                const radarInteraction = data.interaction.total ?? 0;
 
                 const modalBody = document.getElementById('detailModalBody');
                 modalBody.innerHTML = `
@@ -747,26 +757,26 @@
                             <h4 class="mb-1">${s.name}</h4>
                             <div class="text-muted">学号：${s.student_no} · ${s.class_name || '班级未知'}</div>
                             <div class="mt-2">
-                                <span class="badge bg-primary">综合评分：${s.score}</span>
+                                <span class="badge bg-primary">综合评分：${displayScore}</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="metric-cards">
                         <div class="metric-card">
-                            <div class="metric-val text-success">${data.attendance.rate}%</div>
+                            <div class="metric-val text-success">${attendanceRate}${attendanceRate === '-' ? '' : '%'}</div>
                             <div class="metric-lbl">出勤率</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-val text-primary">${data.homework.avg_score}</div>
+                            <div class="metric-val text-primary">${homeworkScore}</div>
                             <div class="metric-lbl">作业均分</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-val text-warning">${data.quiz.avg_score}</div>
+                            <div class="metric-val text-warning">${quizScore}</div>
                             <div class="metric-lbl">测验均分</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-val text-purple" style="color: #8b5cf6;">${data.interaction.total}</div>
+                            <div class="metric-val text-purple" style="color: #8b5cf6;">${interactionTotal}</div>
                             <div class="metric-lbl">互动次数</div>
                         </div>
                     </div>
@@ -793,11 +803,11 @@
                             datasets: [{
                                 label: '个人能力',
                                 data: [
-                                    data.attendance.rate,
-                                    data.homework.avg_score,
-                                    data.quiz.avg_score,
-                                    Math.min(data.interaction.total * 10, 100),
-                                    s.score
+                                    radarAttendance,
+                                    radarHomework,
+                                    radarQuiz,
+                                    Math.min(radarInteraction * 10, 100),
+                                    radarScore
                                 ],
                                 backgroundColor: 'rgba(59, 130, 246, 0.2)',
                                 borderColor: '#3b82f6'

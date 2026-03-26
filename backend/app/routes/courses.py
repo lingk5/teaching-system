@@ -207,7 +207,7 @@ def students(course_id, class_id):
                 # 1. 计算分数 (使用 WarningEngine 逻辑)
                 metrics = engine._calculate_metrics(s.id)
                 score = engine._calculate_comprehensive_score(metrics)
-                s_dict['score'] = round(score, 1)
+                s_dict['score'] = round(score, 1) if score is not None else None
                 
                 # 2. 获取预警状态 (从 Warning 表查)
                 active_warning = Warning.query.filter_by(
