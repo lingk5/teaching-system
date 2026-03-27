@@ -5,11 +5,20 @@ from ..models.course import Student, Class, Course
 import pandas as pd
 from datetime import datetime
 import os
+from ..utils.authz import (
+    ROLE_ADMIN,
+    ROLE_ASSISTANT,
+    ROLE_TEACHER,
+    ensure_course_access,
+    get_current_user,
+    role_required,
+)
 
 data_bp = Blueprint('data', __name__)
 
 
 @data_bp.route('/attendance', methods=['POST'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def add_attendance():
     """单条添加出勤记录"""
     data = request.get_json()
@@ -28,6 +37,7 @@ def add_attendance():
 
 
 @data_bp.route('/homework', methods=['POST'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def add_homework():
     """单条添加作业记录"""
     data = request.get_json()
@@ -47,6 +57,7 @@ def add_homework():
 
 
 @data_bp.route('/quiz', methods=['POST'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def add_quiz():
     """单条添加测验记录"""
     data = request.get_json()
@@ -66,6 +77,7 @@ def add_quiz():
 
 
 @data_bp.route('/interaction', methods=['POST'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def add_interaction():
     """单条添加互动记录"""
     data = request.get_json()
@@ -84,6 +96,7 @@ def add_interaction():
 
 
 @data_bp.route('/import/<string:data_type>', methods=['POST'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def import_data(data_type):
     """
     批量导入数据（Excel/CSV）
@@ -100,6 +113,12 @@ def import_data(data_type):
 
     if not course_id:
         return jsonify({'success': False, 'message': '缺少course_id参数'}), 400
+
+    current_user = get_current_user()
+    allowed, error = ensure_course_access(course_id, current_user)
+    if not allowed:
+        message, status = error
+        return jsonify({'success': False, 'message': message}), status
 
     # 检查文件类型
     allowed_extensions = {'.csv', '.xlsx', '.xls'}
@@ -500,6 +519,7 @@ def _import_interactions(df, course_id):
 
 
 @data_bp.route('/templates/<string:template_type>', methods=['GET'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER, ROLE_ASSISTANT)
 def download_template(template_type):
     """下载导入模板"""
     from flask import send_from_directory
@@ -568,6 +588,7 @@ def download_template(template_type):
 
 
 @data_bp.route('/students/import', methods=['POST'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def import_students_api():
     """
     学生数据导入API
@@ -686,6 +707,7 @@ def import_students_api():
 
 
 @data_bp.route('/courses/import', methods=['POST'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def import_courses_api():
     """
     课程数据导入API
@@ -798,6 +820,7 @@ def import_courses_api():
 
 
 @data_bp.route('/scores/import', methods=['POST'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def import_scores_api():
     """
     成绩数据导入API
@@ -931,6 +954,7 @@ def import_scores_api():
 
 
 @data_bp.route('/attendance/import', methods=['POST'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def import_attendance_api():
     """
     考勤数据导入API

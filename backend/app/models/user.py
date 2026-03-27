@@ -11,12 +11,25 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False, comment='密码哈希')
     name = db.Column(db.String(50), nullable=False, comment='教师姓名')
     email = db.Column(db.String(120), unique=True, comment='邮箱')
-    role = db.Column(db.String(20), default='teacher', comment='角色：admin/teacher')
+    role = db.Column(db.String(20), default='teacher', comment='角色：admin/teacher/assistant')
     created_at = db.Column(db.DateTime, default=datetime.now)
     is_active = db.Column(db.Boolean, default=True)
 
     # 关系：一个教师有多个课程
     courses = db.relationship('Course', backref='teacher', lazy=True)
+    assistant_course_assignments = db.relationship(
+        'AssistantCourseAssignment',
+        foreign_keys='AssistantCourseAssignment.assistant_id',
+        backref='assistant_user',
+        lazy=True,
+        cascade='all, delete-orphan'
+    )
+    created_assignments = db.relationship(
+        'AssistantCourseAssignment',
+        foreign_keys='AssistantCourseAssignment.assigned_by',
+        backref='assigned_by_user',
+        lazy=True
+    )
 
     def to_dict(self):
         return {
@@ -25,5 +38,6 @@ class User(db.Model):
             'name': self.name,
             'email': self.email,
             'role': self.role,
+            'is_active': self.is_active,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S')
         }

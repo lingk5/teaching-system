@@ -182,10 +182,13 @@
             <a href="courses.html" class="menu-item" id="nav-courses">
                 <i class="bi bi-book"></i> 课程管理
             </a>
+            <a href="users.html" class="menu-item" id="nav-users" data-role="admin-only">
+                <i class="bi bi-person-gear"></i> 用户管理
+            </a>
             <a href="students.html" class="menu-item active" id="nav-students">
                 <i class="bi bi-people"></i> 学生管理
             </a>
-            <a href="data-import.html" class="menu-item" id="nav-import">
+            <a href="data-import.html" class="menu-item" id="nav-import" data-role="import">
                 <i class="bi bi-upload"></i> 数据导入
             </a>
             <a href="analytics.html" class="menu-item"  id="nav-analytics">
@@ -261,7 +264,7 @@
             <select class="form-select" style="width: 200px;" id="classFilter" onchange="handleClassChange()">
                 <option value="">请先选择班级</option>
             </select>
-            <button class="btn btn-primary" onclick="showAddStudentModal()">
+            <button class="btn btn-primary" onclick="showAddStudentModal()" data-role="manage">
                 <i class="bi bi-plus-circle me-1"></i>添加学生
             </button>
         </div>
@@ -331,7 +334,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="addStudent()">添加</button>
+                    <button type="button" class="btn btn-primary" onclick="addStudent()" data-role="manage">添加</button>
                 </div>
             </div>
         </div>
@@ -368,7 +371,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="updateStudent()">保存修改</button>
+                    <button type="button" class="btn btn-primary" onclick="updateStudent()" data-role="manage">保存修改</button>
                 </div>
             </div>
         </div>
@@ -492,8 +495,8 @@
                         <div><span class="warning-badge ${badgeClass}">${badgeText}</span></div>
                         <div class="action-btns">
                             <button class="btn-action btn-view" onclick="viewStudent(${s.id})">详情</button>
-                            <button class="btn-action btn-edit" onclick="editStudent(${s.id})">编辑</button>
-                            <button class="btn-action btn-delete" onclick="deleteStudent(${s.id})">删除</button>
+                            <button class="btn-action btn-edit" onclick="editStudent(${s.id})" data-role="manage">编辑</button>
+                            <button class="btn-action btn-delete" onclick="deleteStudent(${s.id})" data-role="manage">删除</button>
                         </div>
                     </div>
                 `;
@@ -588,8 +591,8 @@
                         <div><span class="warning-badge ${badgeClass}">${badgeText}</span></div>
                         <div class="action-btns">
                             <button class="btn-action btn-view" onclick="viewStudent(${s.id})">详情</button>
-                            <button class="btn-action btn-edit" onclick="editStudent(${s.id})">编辑</button>
-                            <button class="btn-action btn-delete" onclick="deleteStudent(${s.id})">删除</button>
+                            <button class="btn-action btn-edit" onclick="editStudent(${s.id})" data-role="manage">编辑</button>
+                            <button class="btn-action btn-delete" onclick="deleteStudent(${s.id})" data-role="manage">删除</button>
                         </div>
                     </div>
                 `;

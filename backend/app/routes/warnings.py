@@ -1,16 +1,28 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..models import db, Warning, Student, Course
-from ..models.data import Attendance, Homework, Quiz
 from datetime import datetime
+from ..utils.authz import (
+    ROLE_ADMIN,
+    ROLE_ASSISTANT,
+    ROLE_TEACHER,
+    ensure_course_access,
+    get_accessible_course_ids,
+    get_current_user,
+    role_required,
+)
 
 warnings_bp = Blueprint('warnings', __name__)
 
 
 @warnings_bp.route('/', methods=['GET'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER, ROLE_ASSISTANT)
 def get_warnings():
     """获取预警列表"""
     try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+
         # 获取查询参数
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
@@ -25,8 +37,19 @@ def get_warnings():
         # 构建查询
         query = Warning.query
 
+        # 非管理员按可访问课程过滤
+        accessible_course_ids = get_accessible_course_ids(current_user)
+        if accessible_course_ids is not None:
+            if not accessible_course_ids:
+                return jsonify({'success': True, 'warnings': [], 'stats': {'total': 0, 'total_pending': 0, 'red_count': 0, 'orange_count': 0, 'resolved_count': 0}, 'total': 0, 'page': page, 'per_page': per_page})
+            query = query.filter(Warning.course_id.in_(accessible_course_ids))
+
         # 按课程筛选
         if course_id:
+            allowed, error = ensure_course_access(course_id, current_user)
+            if not allowed:
+                message, status = error
+                return jsonify({'success': False, 'message': message}), status
             query = query.filter(Warning.course_id == course_id)
 
         # 按班级筛选（需要关联学生表）
@@ -94,6 +117,8 @@ def get_warnings():
 
         # 统计数据 (用于前端卡片数字)
         base_stats_query = Warning.query
+        if accessible_course_ids is not None:
+            base_stats_query = base_stats_query.filter(Warning.course_id.in_(accessible_course_ids))
         if course_id:
             base_stats_query = base_stats_query.filter(Warning.course_id == course_id)
         if class_id:
@@ -150,12 +175,22 @@ def get_warnings():
 
 
 @warnings_bp.route('/<int:warning_id>', methods=['GET'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER, ROLE_ASSISTANT)
 def get_warning_detail(warning_id):
     """获取预警详情"""
     try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+
         warning = Warning.query.get(warning_id)
         if not warning:
             return jsonify({'success': False, 'message': '预警不存在'}), 404
+
+        allowed, error = ensure_course_access(warning.course_id, current_user)
+        if not allowed:
+            message, status = error
+            return jsonify({'success': False, 'message': message}), status
         
         student = Student.query.get(warning.student_id)
         student_name = student.name if student else '未知学生'
@@ -195,7 +230,7 @@ def get_warning_detail(warning_id):
 
 
 @warnings_bp.route('/<int:warning_id>/process', methods=['POST'])
-@jwt_required()
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def process_warning(warning_id):
     """处理预警"""
     try:
@@ -219,14 +254,16 @@ def process_warning(warning_id):
         else:
             warning.status = 'following' # 持续跟进
             
-        # 兼容处理 handled_by，如果是对象取 ID
-        current_user = get_jwt_identity()
-        user_id = current_user.get('id') if isinstance(current_user, dict) else current_user
-        
-        try:
-            warning.handled_by = int(user_id)
-        except:
-            pass # 如果转换失败保持 None
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+
+        allowed, error = ensure_course_access(warning.course_id, current_user)
+        if not allowed:
+            message, status = error
+            return jsonify({'success': False, 'message': message}), status
+
+        warning.handled_by = current_user.id
             
         warning.handled_at = datetime.now()
         warning.handle_note = (
@@ -254,12 +291,22 @@ def process_warning(warning_id):
 
 
 @warnings_bp.route('/<int:warning_id>/history', methods=['GET'])
+@role_required(ROLE_ADMIN, ROLE_TEACHER, ROLE_ASSISTANT)
 def get_warning_history(warning_id):
     """获取预警处理历史"""
     try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+
         warning = Warning.query.get(warning_id)
         if not warning:
             return jsonify({'success': False, 'message': '预警不存在'}), 404
+
+        allowed, error = ensure_course_access(warning.course_id, current_user)
+        if not allowed:
+            message, status = error
+            return jsonify({'success': False, 'message': message}), status
         
         # 构建历史记录
         history = []
@@ -292,10 +339,14 @@ def get_warning_history(warning_id):
 
 
 @warnings_bp.route('/generate', methods=['POST'])
-@jwt_required()
+@role_required(ROLE_ADMIN, ROLE_TEACHER)
 def generate_warnings():
     """手动触发预警生成"""
     try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+
         # 这里应该调用新的 WarningEngine
         from ..services.warning_engine import WarningEngine
 
@@ -304,9 +355,10 @@ def generate_warnings():
             status='active'
         ).count()
         
-        # 简单起见，对所有课程执行检查
-        # 实际场景可能需要根据当前教师的课程来检查
-        courses = Course.query.all()
+        courses_query = Course.query
+        if current_user.role == ROLE_TEACHER:
+            courses_query = courses_query.filter(Course.teacher_id == current_user.id)
+        courses = courses_query.all()
         total_generated = 0
         
         for course in courses:

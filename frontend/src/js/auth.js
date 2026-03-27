@@ -26,6 +26,7 @@ function checkAuth() {
         console.error('Failed to parse userInfo from localStorage:', e);
         window.currentUser = {};
     }
+    applyRoleUI();
     return true;
 }
 
@@ -52,4 +53,41 @@ async function authFetch(url, options = {}) {
 function logout() {
     localStorage.clear();
     window.location.href = 'login.html';
+}
+
+function getRoleLabel(role) {
+    const normalized = (role || 'teacher').toLowerCase();
+    if (normalized === 'admin') return '管理员';
+    if (normalized === 'assistant') return '助教';
+    return '教师';
+}
+
+function applyRoleUI() {
+    const user = window.currentUser || {};
+    const role = (user.role || 'teacher').toLowerCase();
+    const roleLabel = getRoleLabel(role);
+
+    const nameEl = document.getElementById('userName');
+    if (nameEl) {
+        nameEl.textContent = user.name || user.username || roleLabel;
+    }
+
+    document.querySelectorAll('.user-role').forEach((el) => {
+        el.textContent = roleLabel;
+    });
+
+    if (role === 'assistant') {
+        document.querySelectorAll('[data-role="manage"]').forEach((el) => {
+            el.style.display = 'none';
+        });
+        document.querySelectorAll('[data-role="import"]').forEach((el) => {
+            el.style.display = 'none';
+        });
+    }
+
+    if (role !== 'admin') {
+        document.querySelectorAll('[data-role="admin-only"]').forEach((el) => {
+            el.style.display = 'none';
+        });
+    }
 }

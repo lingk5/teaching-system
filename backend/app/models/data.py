@@ -5,6 +5,10 @@ from datetime import datetime, date
 class Attendance(db.Model):
     """出勤记录表"""
     __tablename__ = 'attendances'
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'course_id', 'date', name='uq_attendance_student_course_date'),
+        db.Index('idx_attendance_course_date', 'course_id', 'date'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
@@ -27,6 +31,9 @@ class Attendance(db.Model):
 class Homework(db.Model):
     """作业记录表"""
     __tablename__ = 'homeworks'
+    __table_args__ = (
+        db.Index('idx_homework_course_student', 'course_id', 'student_id'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
@@ -54,6 +61,9 @@ class Homework(db.Model):
 class Quiz(db.Model):
     """测验记录表"""
     __tablename__ = 'quizzes'
+    __table_args__ = (
+        db.Index('idx_quiz_course_student', 'course_id', 'student_id'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
@@ -79,6 +89,9 @@ class Quiz(db.Model):
 class Interaction(db.Model):
     """课堂互动记录表"""
     __tablename__ = 'interactions'
+    __table_args__ = (
+        db.Index('idx_interaction_course_student_date', 'course_id', 'student_id', 'date'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)

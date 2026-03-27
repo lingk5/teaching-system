@@ -17,6 +17,12 @@ class Course(db.Model):
 
     # 关系
     classes = db.relationship('Class', backref='course', lazy=True, cascade='all, delete-orphan')
+    assistant_assignments = db.relationship(
+        'AssistantCourseAssignment',
+        backref='course',
+        lazy=True,
+        cascade='all, delete-orphan'
+    )
 
     def to_dict(self):
         return {

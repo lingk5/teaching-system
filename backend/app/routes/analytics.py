@@ -5,6 +5,14 @@ from ..models import db, Student, Class
 from ..models.data import Attendance, Homework, Quiz, Interaction
 from ..models.warning import Warning
 from ..services.warning_engine import WarningEngine
+from ..utils.authz import (
+    ROLE_ADMIN,
+    ROLE_ASSISTANT,
+    ROLE_TEACHER,
+    ensure_course_access,
+    get_current_user,
+    role_required,
+)
 
 analytics_bp = Blueprint('analytics', __name__)
 
@@ -13,8 +21,18 @@ def _safe_round(value, digits=1):
     return round(value, digits) if value is not None else None
 
 @analytics_bp.route('/course/<int:course_id>/overview')
+@role_required(ROLE_ADMIN, ROLE_TEACHER, ROLE_ASSISTANT)
 def course_overview(course_id):
     """课程概览数据"""
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+
+    allowed, error = ensure_course_access(course_id, current_user)
+    if not allowed:
+        message, status = error
+        return jsonify({'success': False, 'message': message}), status
+
     # 1. 基础统计
     classes = Class.query.filter_by(course_id=course_id).all()
     class_ids = [c.id for c in classes]
@@ -133,8 +151,18 @@ def course_overview(course_id):
     })
 
 @analytics_bp.route('/course/<int:course_id>/students/<int:student_id>/profile')
+@role_required(ROLE_ADMIN, ROLE_TEACHER, ROLE_ASSISTANT)
 def student_profile(course_id, student_id):
     """学生个人学习档案"""
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+
+    allowed, error = ensure_course_access(course_id, current_user)
+    if not allowed:
+        message, status = error
+        return jsonify({'success': False, 'message': message}), status
+
     student = Student.query.get_or_404(student_id)
     
     # 重新使用 WarningEngine 计算该生的实时指标

@@ -92,6 +92,13 @@
         
         .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; background: white; border-radius: 16px; }
         .loading { text-align: center; padding: 40px; color: #64748b; }
+        .assistant-list { max-height: 280px; overflow-y: auto; }
+        .assistant-item {
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+            background: #f8fafc;
+        }
+        .assistant-meta { font-size: 12px; color: #64748b; }
         
         .rotate { transform: rotate(180deg); }
         .chevron { transition: transform 0.3s; }
@@ -123,10 +130,13 @@
             <a href="courses.html" class="menu-item" id="nav-courses">
                 <i class="bi bi-book"></i> 课程管理
             </a>
+            <a href="users.html" class="menu-item" id="nav-users" data-role="admin-only">
+                <i class="bi bi-person-gear"></i> 用户管理
+            </a>
             <a href="students.html" class="menu-item" id="nav-students">
                 <i class="bi bi-people"></i> 学生管理
             </a>
-            <a href="data-import.html" class="menu-item" id="nav-import">
+            <a href="data-import.html" class="menu-item" id="nav-import" data-role="import">
                 <i class="bi bi-upload"></i> 数据导入
             </a>
             <a href="analytics.html" class="menu-item"  id="nav-analytics">
@@ -169,7 +179,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="addClass()">添加</button>
+                    <button type="button" class="btn btn-primary" onclick="addClass()" data-role="manage">添加</button>
                 </div>
             </div>
         </div>
@@ -180,7 +190,7 @@
         <div class="page-header">
             <h2><i class="bi bi-book me-2 text-primary"></i>课程管理</h2>
             <p>管理您的课程、班级及学生信息</p>
-            <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+            <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#createCourseModal" data-role="manage">
                 <i class="bi bi-plus-circle me-2"></i>创建新课程
             </button>
         </div>
@@ -219,7 +229,38 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="createCourse()">创建</button>
+                    <button type="button" class="btn btn-primary" onclick="createCourse()" data-role="manage">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 助教管理模态框 -->
+    <div class="modal fade" id="assistantModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><span id="assistantModalCourseName">课程</span> - 助教管理</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">可选助教</label>
+                            <select id="assistantSelect" class="form-select"></select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" onclick="assignAssistant()" data-role="manage">
+                                <i class="bi bi-person-plus me-1"></i>指派助教
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <h6 class="mb-2">已指派助教</h6>
+                        <div id="assistantList" class="assistant-list">
+                            <div class="text-muted">加载中...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -231,6 +272,8 @@
     <script>
         // 全局变量
         let currentCourseId = null;
+        let currentAssistantCourseId = null;
+        let assistantOptions = [];
 
         // 设置当前操作的课程ID (供添加班级使用)
         function setCurrentCourse(courseId) {
@@ -247,6 +290,7 @@
                 const userInfoStr = localStorage.getItem('userInfo');
                 const user = userInfoStr ? JSON.parse(userInfoStr) : {};
                 document.getElementById('userName').textContent = user.name || user.username || '教师';
+                if (typeof applyRoleUI === 'function') applyRoleUI();
             } catch (error) {
                 console.error('加载用户信息失败:', error);
                 document.getElementById('userName').textContent = '教师';
@@ -285,6 +329,89 @@
                         <small class="text-muted">请检查后端服务是否启动，或尝试刷新页面。</small>
                     </div>
                 `;
+            }
+        }
+
+        async function loadAssistantOptions() {
+            try {
+                const response = await request.get('/courses/assistants');
+                assistantOptions = response.data || [];
+                const select = document.getElementById('assistantSelect');
+                select.innerHTML = '<option value="">请选择助教</option>' + assistantOptions.map(a => (
+                    `<option value="${a.id}">${a.name} (${a.username})</option>`
+                )).join('');
+            } catch (error) {
+                console.error('加载助教列表失败:', error);
+                alert(`加载助教列表失败: ${error.message}`);
+            }
+        }
+
+        async function loadCourseAssistants(courseId) {
+            try {
+                const response = await request.get(`/courses/${courseId}/assistants`);
+                const assigned = response.data || [];
+                const container = document.getElementById('assistantList');
+                if (assigned.length === 0) {
+                    container.innerHTML = '<div class="text-muted">当前课程暂无指派助教</div>';
+                    return;
+                }
+                container.innerHTML = assigned.map(a => `
+                    <div class="assistant-item">
+                        <div>
+                            <div class="fw-semibold">${a.assistant_name || ''} <span class="text-muted">(${a.assistant_username || ''})</span></div>
+                            <div class="assistant-meta">指派人：${a.assigned_by_name || ''} ｜ 时间：${a.assigned_at || ''}</div>
+                        </div>
+                        <button class="btn btn-outline-danger btn-sm" data-role="manage" onclick="removeAssistant(${a.assistant_id})">
+                            解除
+                        </button>
+                    </div>
+                `).join('');
+                if (typeof applyRoleUI === 'function') applyRoleUI();
+            } catch (error) {
+                console.error('加载课程助教失败:', error);
+                document.getElementById('assistantList').innerHTML = `<div class="text-danger">加载失败：${error.message}</div>`;
+            }
+        }
+
+        async function openAssistantModal(courseId, courseName) {
+            currentAssistantCourseId = courseId;
+            document.getElementById('assistantModalCourseName').textContent = courseName || '课程';
+            await loadAssistantOptions();
+            await loadCourseAssistants(courseId);
+            new bootstrap.Modal(document.getElementById('assistantModal')).show();
+        }
+
+        async function assignAssistant() {
+            const assistantId = document.getElementById('assistantSelect').value;
+            if (!assistantId) {
+                alert('请先选择助教');
+                return;
+            }
+            if (!currentAssistantCourseId) {
+                alert('未获取课程信息');
+                return;
+            }
+            try {
+                await request.post(`/courses/${currentAssistantCourseId}/assistants`, {
+                    assistant_id: Number(assistantId)
+                });
+                await loadCourseAssistants(currentAssistantCourseId);
+                alert('助教指派成功');
+            } catch (error) {
+                console.error('指派助教失败:', error);
+                alert(`指派失败: ${error.message}`);
+            }
+        }
+
+        async function removeAssistant(assistantId) {
+            if (!currentAssistantCourseId) return;
+            if (!confirm('确认解除该助教的课程指派吗？')) return;
+            try {
+                await request.delete(`/courses/${currentAssistantCourseId}/assistants/${assistantId}`);
+                await loadCourseAssistants(currentAssistantCourseId);
+            } catch (error) {
+                console.error('解除助教失败:', error);
+                alert(`解除失败: ${error.message}`);
             }
         }
 
@@ -379,6 +506,10 @@
                 </div>
             `;
         }
+
+        function escapeForSingleQuote(value) {
+            return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
         
         function renderCourses(courses) {
             const html = courses.map(course => `
@@ -409,6 +540,10 @@
                             <i class="bi bi-check-circle"></i> 状态正常
                         </div>
                     </div>
+                    <button class="btn btn-outline-primary btn-sm mb-3" data-role="manage"
+                        onclick="openAssistantModal(${course.id}, '${escapeForSingleQuote(course.name || '')}')">
+                        <i class="bi bi-person-gear me-1"></i>助教管理
+                    </button>
                     
                     <div class="classes-section" id="classes-${course.id}" style="display: none;">
                         <div class="section-title" onclick="toggleClasses(${course.id})">
@@ -433,7 +568,7 @@
                                 : '<div style="color: #94a3b8; padding: 12px; text-align: center;">暂无班级数据</div>'
                             }
                         </div>
-                        <button class="btn btn-secondary btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#addClassModal" onclick="setCurrentCourse(${course.id})">
+                        <button class="btn btn-secondary btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#addClassModal" onclick="setCurrentCourse(${course.id})" data-role="manage">
                             <i class="bi bi-plus-circle me-1"></i>添加班级
                         </button>
                     </div>
@@ -441,6 +576,7 @@
             `).join('');
             
             document.getElementById('courseList').innerHTML = html;
+            if (typeof applyRoleUI === 'function') applyRoleUI();
         }
         
         // 展开/折叠班级列表 (简单的 DOM 操作)

@@ -4,7 +4,6 @@
 格式：Excel (.xlsx) 带样式美化
 """
 from flask import Blueprint, request, jsonify, send_file, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func, and_, or_, case
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -17,6 +16,15 @@ import traceback
 from ..models import db, Student, Course, Class
 from ..models.data import Attendance, Homework, Quiz, Interaction
 from ..models.warning import Warning
+from ..utils.authz import (
+    ROLE_ADMIN,
+    ROLE_ASSISTANT,
+    ROLE_TEACHER,
+    ensure_course_access,
+    get_accessible_course_ids,
+    get_current_user,
+    role_required,
+)
 
 export_bp = Blueprint('export', __name__)
 
@@ -56,21 +64,16 @@ def apply_styles(worksheet):
                 cell.alignment = Alignment(horizontal='center', vertical='center')
 
 @export_bp.route('/students', methods=['GET'])
-@jwt_required()
+@role_required(ROLE_ADMIN, ROLE_TEACHER, ROLE_ASSISTANT)
 def export_students():
     """
     导出学生名单
     """
     try:
-        teacher_id = get_jwt_identity()
-        # 兼容处理 teacher_id
-        if isinstance(teacher_id, dict):
-             teacher_id = teacher_id.get('id')
-        elif isinstance(teacher_id, str) and not teacher_id.isdigit():
-             # 如果是用户名，查库
-             from ..models import User
-             user = User.query.filter_by(username=teacher_id).first()
-             teacher_id = user.id if user else None
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+        accessible_course_ids = get_accessible_course_ids(current_user)
 
         course_id = request.args.get('course_id', type=int)
         class_id = request.args.get('class_id', type=int)
@@ -86,6 +89,10 @@ def export_students():
 
         # 如果指定了课程，只导出该课程的学生
         if course_id:
+            allowed, error = ensure_course_access(course_id, current_user)
+            if not allowed:
+                message, status = error
+                return jsonify({'success': False, 'message': message}), status
             query = query.join(
                 Course, Class.course_id == Course.id
             ).filter(
@@ -100,8 +107,10 @@ def export_students():
             query = query.join(
                 Course, Class.course_id == Course.id
             )
-            if teacher_id:
-                query = query.filter(Course.teacher_id == teacher_id)
+            if accessible_course_ids is not None:
+                if not accessible_course_ids:
+                    return jsonify({'success': False, 'message': '无可导出课程'}), 403
+                query = query.filter(Course.id.in_(accessible_course_ids))
             filename_suffix = "_全部"
 
         if class_id:
@@ -161,19 +170,16 @@ def export_students():
         return jsonify({'success': False, 'message': f'导出失败: {str(e)}'}), 500
 
 @export_bp.route('/scores', methods=['GET'])
-@jwt_required()
+@role_required(ROLE_ADMIN, ROLE_TEACHER, ROLE_ASSISTANT)
 def export_scores():
     """
     导出成绩报表
     """
     try:
-        teacher_id = get_jwt_identity()
-        if isinstance(teacher_id, dict):
-             teacher_id = teacher_id.get('id')
-        elif isinstance(teacher_id, str) and not teacher_id.isdigit():
-             from ..models import User
-             user = User.query.filter_by(username=teacher_id).first()
-             teacher_id = user.id if user else None
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+        accessible_course_ids = get_accessible_course_ids(current_user)
 
         course_id = request.args.get('course_id', type=int)
         class_id = request.args.get('class_id', type=int)
@@ -212,10 +218,16 @@ def export_scores():
             Quiz, and_(Quiz.student_id == Student.id, Quiz.course_id == Course.id)
         )
 
-        if teacher_id:
-            query = query.filter(Course.teacher_id == teacher_id)
+        if accessible_course_ids is not None:
+            if not accessible_course_ids:
+                return jsonify({'success': False, 'message': '无可导出课程'}), 403
+            query = query.filter(Course.id.in_(accessible_course_ids))
 
         if course_id:
+            allowed, error = ensure_course_access(course_id, current_user)
+            if not allowed:
+                message, status = error
+                return jsonify({'success': False, 'message': message}), status
             query = query.filter(Course.id == course_id)
         if class_id:
             query = query.filter(Student.class_id == class_id)
@@ -314,19 +326,16 @@ def export_scores():
         return jsonify({'success': False, 'message': f'导出失败: {str(e)}'}), 500
 
 @export_bp.route('/attendance', methods=['GET'])
-@jwt_required()
+@role_required(ROLE_ADMIN, ROLE_TEACHER, ROLE_ASSISTANT)
 def export_attendance():
     """
     导出考勤统计
     """
     try:
-        teacher_id = get_jwt_identity()
-        if isinstance(teacher_id, dict):
-             teacher_id = teacher_id.get('id')
-        elif isinstance(teacher_id, str) and not teacher_id.isdigit():
-             from ..models import User
-             user = User.query.filter_by(username=teacher_id).first()
-             teacher_id = user.id if user else None
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+        accessible_course_ids = get_accessible_course_ids(current_user)
 
         course_id = request.args.get('course_id', type=int)
 
@@ -354,10 +363,16 @@ def export_attendance():
             Attendance.date.between(start_date, end_date)
         )
         
-        if teacher_id:
-             query = query.filter(Course.teacher_id == teacher_id)
+        if accessible_course_ids is not None:
+            if not accessible_course_ids:
+                return jsonify({'success': False, 'message': '无可导出课程'}), 403
+            query = query.filter(Course.id.in_(accessible_course_ids))
 
         if course_id:
+            allowed, error = ensure_course_access(course_id, current_user)
+            if not allowed:
+                message, status = error
+                return jsonify({'success': False, 'message': message}), status
             query = query.filter(Attendance.course_id == course_id)
 
         results = query.order_by(Attendance.date.desc()).all()
@@ -435,19 +450,16 @@ def export_attendance():
         return jsonify({'success': False, 'message': f'导出失败: {str(e)}'}), 500
 
 @export_bp.route('/warnings', methods=['GET'])
-@jwt_required()
+@role_required(ROLE_ADMIN, ROLE_TEACHER, ROLE_ASSISTANT)
 def export_warnings():
     """
     导出预警报告
     """
     try:
-        teacher_id = get_jwt_identity()
-        if isinstance(teacher_id, dict):
-             teacher_id = teacher_id.get('id')
-        elif isinstance(teacher_id, str) and not teacher_id.isdigit():
-             from ..models import User
-             user = User.query.filter_by(username=teacher_id).first()
-             teacher_id = user.id if user else None
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': '用户不存在或未登录'}), 401
+        accessible_course_ids = get_accessible_course_ids(current_user)
 
         level = request.args.get('level')
         status = request.args.get('status')
@@ -466,8 +478,10 @@ def export_warnings():
             Course, Warning.course_id == Course.id
         )
         
-        if teacher_id:
-            query = query.filter(Course.teacher_id == teacher_id)
+        if accessible_course_ids is not None:
+            if not accessible_course_ids:
+                return jsonify({'success': False, 'message': '无可导出课程'}), 403
+            query = query.filter(Course.id.in_(accessible_course_ids))
 
         if level:
             query = query.filter(Warning.level == level)

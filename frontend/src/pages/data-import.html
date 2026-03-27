@@ -94,10 +94,13 @@
             <a href="courses.html" class="menu-item" id="nav-courses">
                 <i class="bi bi-book"></i> 课程管理
             </a>
+            <a href="users.html" class="menu-item" id="nav-users" data-role="admin-only">
+                <i class="bi bi-person-gear"></i> 用户管理
+            </a>
             <a href="students.html" class="menu-item" id="nav-students">
                 <i class="bi bi-people"></i> 学生管理
             </a>
-            <a href="data-import.html" class="menu-item active" id="nav-import">
+            <a href="data-import.html" class="menu-item active" id="nav-import" data-role="import">
                 <i class="bi bi-upload"></i> 数据导入
             </a>
             <a href="analytics.html" class="menu-item"  id="nav-analytics">
@@ -142,7 +145,7 @@
                             <input type="file" class="form-control" id="studentsFile" accept=".xlsx,.xls,.csv" required>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <button type="submit" class="btn btn-success">
+                            <button type="submit" class="btn btn-success" data-role="import">
                                 <i class="bi bi-upload"></i> 开始导入
                             </button>
                             <a href="/api/data/templates/students" class="btn btn-link">下载模板</a>
@@ -183,7 +186,7 @@
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center">
-                            <button type="submit" class="btn btn-info text-white">
+                            <button type="submit" class="btn btn-info text-white" data-role="import">
                                 <i class="bi bi-upload"></i> 开始导入
                             </button>
                             <a href="#" id="templateLink" onclick="downloadTemplate(event)" class="btn btn-link">下载考勤模板</a>
@@ -198,7 +201,19 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            try {
+                if (typeof checkAuth === 'function') checkAuth();
+            } catch (e) {
+                console.error('Auth check failed:', e);
+                window.location.href = 'login.html';
+                return;
+            }
             loadUserInfo();
+            if (window.currentUser && (window.currentUser.role || '').toLowerCase() === 'assistant') {
+                alert('助教仅可查看数据，无法进入导入页面');
+                window.location.href = 'dashboard.html';
+                return;
+            }
             loadCourses();
 
             // 监听类型变化，显示期末提示
@@ -217,6 +232,7 @@
                 const userInfoStr = localStorage.getItem('userInfo');
                 const user = userInfoStr ? JSON.parse(userInfoStr) : {};
                 document.getElementById('userName').textContent = user.name || user.username || '教师';
+                if (typeof applyRoleUI === 'function') applyRoleUI();
             } catch (error) {
                 console.error('加载用户信息失败:', error);
             }

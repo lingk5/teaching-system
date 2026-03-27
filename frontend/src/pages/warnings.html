@@ -141,8 +141,9 @@
         <div class="sidebar-menu">
             <a href="dashboard.html" class="menu-item" id="nav-dashboard"><i class="bi bi-speedometer2"></i> 仪表盘</a>
             <a href="courses.html" class="menu-item" id="nav-courses"><i class="bi bi-book"></i> 课程管理</a>
+            <a href="users.html" class="menu-item" id="nav-users" data-role="admin-only"><i class="bi bi-person-gear"></i> 用户管理</a>
             <a href="students.html" class="menu-item" id="nav-students"><i class="bi bi-people"></i> 学生管理</a>
-            <a href="data-import.html" class="menu-item" id="nav-import"><i class="bi bi-upload"></i> 数据导入</a>
+            <a href="data-import.html" class="menu-item" id="nav-import" data-role="import"><i class="bi bi-upload"></i> 数据导入</a>
             <a href="analytics.html" class="menu-item" id="nav-analytics"><i class="bi bi-graph-up"></i> 学情分析</a>
             <a href="warnings.html" class="menu-item active" id="nav-warnings"><i class="bi bi-exclamation-triangle"></i> 预警中心</a>
         </div>
@@ -285,7 +286,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="submitProcess()">提交处理</button>
+                    <button type="button" class="btn btn-primary" onclick="submitProcess()" data-role="manage">提交处理</button>
                 </div>
             </div>
         </div>
@@ -499,7 +500,7 @@
                         </div>
                     </div>
                     ${!isResolved ? `<div class="warning-actions">
-                        <button class="btn-process" onclick="openProcessModal(${w.id})">处理</button>
+                        <button class="btn-process" onclick="openProcessModal(${w.id})" data-role="manage">处理</button>
                     </div>` : ''}
                 </div>`;
             }).join('');

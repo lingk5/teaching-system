@@ -116,6 +116,11 @@ def create_app():
     def courses_page():
         return app.send_static_file('pages/courses.html')
 
+    @app.route('/users')
+    @app.route('/users.html')
+    def users_page():
+        return app.send_static_file('pages/users.html')
+
     @app.route('/students')
     @app.route('/students.html')
     def students_page():

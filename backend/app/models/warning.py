@@ -5,6 +5,10 @@ from datetime import datetime
 class Warning(db.Model):
     """预警记录表"""
     __tablename__ = 'warnings'
+    __table_args__ = (
+        db.Index('idx_warning_course_status_level', 'course_id', 'status', 'level'),
+        db.Index('idx_warning_student_created', 'student_id', 'created_at'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
