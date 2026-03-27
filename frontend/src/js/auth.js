@@ -27,6 +27,9 @@ function checkAuth() {
         window.currentUser = {};
     }
     applyRoleUI();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyRoleUI, { once: true });
+    }
     return true;
 }
 

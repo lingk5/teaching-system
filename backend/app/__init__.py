@@ -4,6 +4,7 @@ from flask_jwt_extended import JWTManager
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
@@ -87,17 +88,44 @@ def create_app():
         db.create_all()
         print("✅ 数据库表创建成功")
 
-        if not User.query.filter_by(username='teacher').first():
-            from werkzeug.security import generate_password_hash
-            default_user = User(
-                username='teacher',
-                password_hash=generate_password_hash('123456'),
-                name='演示教师',
-                role='teacher'
+        default_accounts = [
+            {
+                'username': 'admin',
+                'password': '123456',
+                'name': '系统管理员',
+                'role': 'admin',
+            },
+            {
+                'username': 'teacher',
+                'password': '123456',
+                'name': '演示教师',
+                'role': 'teacher',
+            },
+            {
+                'username': 'assistant',
+                'password': '123456',
+                'name': '演示助教',
+                'role': 'assistant',
+            },
+        ]
+        created_accounts = []
+        for account in default_accounts:
+            exists = User.query.filter_by(username=account['username']).first()
+            if exists:
+                continue
+            db.session.add(
+                User(
+                    username=account['username'],
+                    password_hash=generate_password_hash(account['password']),
+                    name=account['name'],
+                    role=account['role'],
+                )
             )
-            db.session.add(default_user)
+            created_accounts.append(account['username'])
+
+        if created_accounts:
             db.session.commit()
-            print("✅ 默认账号创建成功：teacher / 123456")
+            print(f"✅ 默认账号创建成功：{', '.join(created_accounts)}（密码均为 123456）")
 
     # 前端页面路由 - 统一指向 pages 目录下的文件
     @app.route('/')

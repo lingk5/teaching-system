@@ -10,6 +10,14 @@
     <script src="../js/config.js"></script>
     <script src="../js/request.js"></script>
     <script src="../js/auth.js"></script>
+    <script>
+        try {
+            if (typeof checkAuth === 'function') checkAuth();
+        } catch (e) {
+            console.error('Auth check failed:', e);
+            window.location.href = 'login.html';
+        }
+    </script>
 
     <style>
         /* 保持原有样式不变 */
@@ -320,6 +328,15 @@
         let searchTimeout; // 用于防抖
 
         document.addEventListener('DOMContentLoaded', function() {
+            try {
+                if (typeof checkAuth === 'function' && !checkAuth()) {
+                    return;
+                }
+            } catch (e) {
+                console.error('Auth check failed:', e);
+                window.location.href = 'login.html';
+                return;
+            }
             loadUserInfo();
             loadInitialData();
             startAutoRefresh();
@@ -568,7 +585,16 @@
 
         function handleClassChange() { fetchWarnings(); }
 
-        function loadUserInfo() { /* 同之前 */ }
+        function loadUserInfo() {
+            try {
+                const userInfoStr = localStorage.getItem('userInfo');
+                const user = userInfoStr ? JSON.parse(userInfoStr) : {};
+                document.getElementById('userName').textContent = user.name || user.username || '教师';
+                if (typeof applyRoleUI === 'function') applyRoleUI();
+            } catch (error) {
+                console.error('加载用户信息失败:', error);
+            }
+        }
         function logout() { localStorage.clear(); window.location.href='login.html'; }
 
         // 处理相关逻辑保持不变
