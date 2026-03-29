@@ -17,6 +17,7 @@ import traceback
 from ..models import db, Student, Course, Class
 from ..models.data import Attendance, Homework, Quiz, Interaction
 from ..models.warning import Warning
+from ..services.weight_config import WeightConfig
 
 export_bp = Blueprint('export', __name__)
 
@@ -232,15 +233,24 @@ def export_scores():
         if not results:
             return jsonify({'success': False, 'message': '无成绩数据可导出'}), 404
 
-        # 构建数据
+        # 构建数据（使用统一的权重配置）
+        col_titles = WeightConfig.get_score_column_titles()
         data = []
         for row in results:
-            # 计算综合分
-            attendance = float(row.attendance_avg) if row.attendance_avg is not None else 0
-            homework = float(row.homework_avg) if row.homework_avg is not None else 0
-            quiz = float(row.quiz_avg) if row.quiz_avg is not None else 0
-            
-            composite = attendance * 0.3 + homework * 0.3 + quiz * 0.4
+            # 各维度原始得分（0-100）
+            attendance  = float(row.attendance_avg) if row.attendance_avg is not None else 0.0
+            homework    = float(row.homework_avg)   if row.homework_avg   is not None else 0.0
+            quiz        = float(row.quiz_avg)       if row.quiz_avg       is not None else 0.0
+            # 互动分：导出查询暂未聚合互动数据，无数据时默认满分（与预警引擎逻辑一致）
+            interaction = 100.0
+
+            metrics = {
+                'attendance':  attendance,
+                'homework':    homework,
+                'quiz':        quiz,
+                'interaction': interaction,
+            }
+            composite = WeightConfig.calculate_comprehensive_score(metrics)
 
             # 评定等级
             if composite >= 90:
@@ -255,15 +265,16 @@ def export_scores():
                 grade = '不及格'
 
             data.append({
-                '学号': row.student_no,
-                '姓名': row.name,
-                '班级': row.class_name,
-                '课程': row.course_name,
-                '出勤分(30%)': round(attendance, 1),
-                '作业分(30%)': round(homework, 1),
-                '测评分(40%)': round(quiz, 1),
-                '综合分': round(composite, 1),
-                '等级': grade
+                '学号':                    row.student_no,
+                '姓名':                    row.name,
+                '班级':                    row.class_name,
+                '课程':                    row.course_name,
+                col_titles['attendance']:  round(attendance, 1),
+                col_titles['homework']:    round(homework, 1),
+                col_titles['quiz']:        round(quiz, 1),
+                col_titles['interaction']: round(interaction, 1),
+                '综合分':                  round(composite, 1),
+                '等级':                    grade,
             })
 
         df = pd.DataFrame(data)
@@ -486,7 +497,7 @@ def export_warnings():
         # 构建数据
         data = []
         level_map = {'red': '红色', 'orange': '橙色', 'yellow': '黄色'}
-        status_map = {'active': '未处理', 'processed': '已处理', 'ignored': '已忽略'}
+        status_map = {'active': '未处理', 'processed': '已处理', 'ignored': '已忽略', 'following': '跟进中'}
 
         for warning, student_no, name, course_name in results:
             data.append({
