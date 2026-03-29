@@ -147,16 +147,43 @@ def create_app():
 
     @app.route('/api/status')
     def status():
+        # 基础计数
+        total_attendance = Attendance.query.count()
+        present_count    = Attendance.query.filter_by(status='present').count()
+        total_homework   = Homework.query.count()
+        completed_hw     = Homework.query.filter(
+            Homework.status.in_(['submitted', 'graded'])
+        ).count()
+
+        attendance_rate = round(present_count / total_attendance * 100, 1) if total_attendance > 0 else None
+        homework_rate   = round(completed_hw / total_homework * 100, 1) if total_homework > 0 else None
+
+        # 预警分布 (红/橙/黄/正常)
+        total_students = Student.query.count()
+        warn_red    = Warning.query.filter_by(level='red').count()
+        warn_orange = Warning.query.filter_by(level='orange').count()
+        warn_yellow = Warning.query.filter_by(level='yellow').count()
+        normal_count = max(total_students - warn_red - warn_orange - warn_yellow, 0)
+
         stats = {
-            'users': User.query.count(),
-            'courses': Course.query.count(),
-            'classes': Class.query.count(),
-            'students': Student.query.count(),
-            'attendances': Attendance.query.count(),
-            'homeworks': Homework.query.count(),
-            'quizzes': Quiz.query.count(),
-            'interactions': Interaction.query.count(),
-            'warnings': Warning.query.count()
+            'users':           User.query.count(),
+            'courses':         Course.query.count(),
+            'classes':         Class.query.count(),
+            'students':        total_students,
+            'attendances':     total_attendance,
+            'homeworks':       total_homework,
+            'quizzes':         Quiz.query.count(),
+            'interactions':    Interaction.query.count(),
+            'warnings':        Warning.query.count(),
+            # 新增：仪表盘卡片需要的聚合字段
+            'attendance_rate': attendance_rate,   # None 表示暂无数据
+            'homework_rate':   homework_rate,
+            'warning_distribution': {
+                'red':    warn_red,
+                'orange': warn_orange,
+                'yellow': warn_yellow,
+                'normal': normal_count
+            }
         }
         return jsonify({
             "status": "running",

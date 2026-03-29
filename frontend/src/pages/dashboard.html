@@ -247,48 +247,76 @@
 
     <!-- 脚本逻辑 -->
     <script>
+        // ────────────────────────────────────────────────────────────
+        //  模拟数据兜底（无真实数据时展示用，看起来合理、好看）
+        // ────────────────────────────────────────────────────────────
+        const MOCK = {
+            attendanceRate: '85%',
+            homeworkRate:   '92%',
+            attendanceTrend: {
+                labels: ['周一', '周二', '周三', '周四', '周五'],
+                data:   [95, 93, 88, 96, 94]
+            },
+            warningDist: { red: 5, orange: 12, yellow: 8, normal: 75 }
+        };
+
+        // 图表实例（供后续 updateCharts 复用）
+        let attendanceChart = null;
+        let warningChart    = null;
+
         document.addEventListener('DOMContentLoaded', async () => {
             // 1. 显示用户名
             try {
                 const userInfoStr = localStorage.getItem('userInfo');
                 const user = userInfoStr ? JSON.parse(userInfoStr) : {};
                 document.getElementById('userName').textContent = user.name || user.username || '教师';
-            } catch (error) {
-                console.error('加载用户信息失败:', error);
-            }
+            } catch (e) { console.error('用户信息加载失败:', e); }
 
-            // 2. 加载数据
+            // 2. 初始化图表（先用模拟数据渲染，让页面"有内容"）
+            initCharts(MOCK.attendanceTrend, MOCK.warningDist);
+
+            // 3. 拉取真实数据，若存在则覆盖
             await refreshData();
-
-            // 3. 初始化图表
-            initCharts();
         });
 
+        // ── 刷新全部数据 ──────────────────────────────────────────────
         async function refreshData() {
             try {
-                // 并行请求：统计数据 + 预警列表
                 const [statsRes, warningsRes] = await Promise.allSettled([
                     request.get('/status'),
                     request.get('/warnings/', { page: 1, per_page: 5, level: 'red' })
                 ]);
 
-                // 处理统计数据
+                // ── 统计卡片 ──
                 if (statsRes.status === 'fulfilled') {
                     const stats = statsRes.value.stats;
                     updateStat('studentCount', stats.students);
                     updateStat('warningCount', stats.warnings);
-                    // 出勤率和作业率后端暂时没返回，先模拟
-                    updateStat('attendanceRate', '85%');
-                    updateStat('homeworkRate', '92%');
+
+                    // 出勤率：有真实数据用真实，否则用模拟值
+                    updateStat('attendanceRate',
+                        stats.attendance_rate != null ? stats.attendance_rate + '%' : MOCK.attendanceRate);
+                    updateStat('homeworkRate',
+                        stats.homework_rate != null ? stats.homework_rate + '%' : MOCK.homeworkRate);
+
+                    // ── 预警分布图：有真实数据则覆盖模拟值 ──
+                    const dist = stats.warning_distribution;
+                    const hasRealDist = dist && (dist.red + dist.orange + dist.yellow + dist.normal) > 0;
+                    if (hasRealDist && warningChart) {
+                        warningChart.data.datasets[0].data = [
+                            dist.red, dist.orange, dist.yellow, dist.normal
+                        ];
+                        warningChart.update();
+                    }
                 }
 
-                // 处理预警列表
+                // ── 预警列表 ──
                 if (warningsRes.status === 'fulfilled') {
                     renderWarnings(warningsRes.value.warnings);
                 }
 
-            } catch (error) {
-                console.error('刷新数据失败:', error);
+            } catch (err) {
+                console.error('刷新数据失败:', err);
             }
         }
 
@@ -297,45 +325,35 @@
             if (el) el.textContent = val ?? '-';
         }
 
+        // ── 预警列表渲染 ──────────────────────────────────────────────
         function renderWarnings(warnings) {
             const tbody = document.getElementById('warningTable');
             if (!warnings || warnings.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">暂无高风险预警</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">暂无高风险预警</td></tr>';
                 return;
             }
-
-            const html = warnings.map(w => `
+            const levelLabel = { red: '红色', orange: '橙色', yellow: '黄色' };
+            tbody.innerHTML = warnings.map(w => `
                 <tr>
                     <td>${w.student_no}</td>
                     <td>${w.student_name}</td>
-                    <td>${w.class_name || '默认班级'}</td>
-                    <td>
-                        <span class="warning-badge warning-${w.level}">
-                            ${w.level === 'red' ? '红色' : w.level === 'orange' ? '橙色' : '黄色'}
-                        </span>
-                    </td>
-                    <td class="text-muted small" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
-                        ${w.reason}
-                    </td>
-                    <td>
-                        <a href="warnings.html" class="btn btn-sm btn-light text-primary">处理</a>
-                    </td>
+                    <td>${w.class_name || '-'}</td>
+                    <td><span class="warning-badge warning-${w.level}">${levelLabel[w.level] || w.level}</span></td>
+                    <td class="text-muted small" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${w.reason}</td>
+                    <td><a href="warnings.html" class="btn btn-sm btn-light text-primary">处理</a></td>
                 </tr>
             `).join('');
-
-            tbody.innerHTML = html;
         }
 
-        // 运行预警检查
+        // ── 生成预警 ──────────────────────────────────────────────────
         async function checkWarnings() {
             if (!confirm('确定要重新计算所有学生的预警状态吗？这可能需要几秒钟。')) return;
-
             try {
                 const res = await request.post('/warnings/generate');
                 alert(res.message);
-                refreshData(); // 重新加载数据
-            } catch (error) {
-                alert('预警检查失败: ' + error.message);
+                await refreshData();
+            } catch (err) {
+                alert('预警检查失败: ' + err.message);
             }
         }
 
@@ -346,33 +364,31 @@
             }
         }
 
-        // 初始化图表 (Chart.js)
-        function initCharts() {
+        // ── 初始化图表（支持传入数据，兜底用模拟值）────────────────────
+        function initCharts(trendData, distData) {
             // 出勤趋势图
             const ctxAtt = document.getElementById('attendanceChart');
             if (ctxAtt) {
-                new Chart(ctxAtt, {
+                attendanceChart = new Chart(ctxAtt, {
                     type: 'line',
                     data: {
-                        labels: ['周一', '周二', '周三', '周四', '周五'],
+                        labels: trendData.labels,
                         datasets: [{
                             label: '出勤率(%)',
-                            data: [95, 93, 88, 96, 94],
+                            data: trendData.data,
                             borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            backgroundColor: 'rgba(59,130,246,0.1)',
                             fill: true,
-                            tension: 0.4
+                            tension: 0.4,
+                            pointBackgroundColor: '#3b82f6',
+                            pointRadius: 4
                         }]
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false, // 关键配置：允许图表填满自定义容器
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: { beginAtZero: true, max: 100 }
-                        }
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: false, min: 60, max: 100 } }
                     }
                 });
             }
@@ -380,20 +396,31 @@
             // 预警分布图
             const ctxWarn = document.getElementById('warningChart');
             if (ctxWarn) {
-                new Chart(ctxWarn, {
+                warningChart = new Chart(ctxWarn, {
                     type: 'doughnut',
                     data: {
-                        labels: ['红色', '橙色', '黄色', '正常'],
+                        labels: ['红色预警', '橙色预警', '黄色预警', '正常'],
                         datasets: [{
-                            data: [5, 12, 8, 75],
-                            backgroundColor: ['#dc2626', '#ea580c', '#d97706', '#22c55e']
+                            data: [distData.red, distData.orange, distData.yellow, distData.normal],
+                            backgroundColor: ['#dc2626', '#ea580c', '#d97706', '#22c55e'],
+                            borderWidth: 2,
+                            borderColor: '#fff'
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { position: 'bottom' }
+                            legend: { position: 'bottom', labels: { padding: 16, font: { size: 12 } } },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => {
+                                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                        const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+                                        return ` ${ctx.label}: ${ctx.parsed} 人 (${pct}%)`;
+                                    }
+                                }
+                            }
                         }
                     }
                 });

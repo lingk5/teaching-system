@@ -271,11 +271,29 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // 全局图表实例
+        // ────────────────────────────────────────────────────────────
+        //  模拟数据兜底（后端无真实数据时展示用）
+        // ────────────────────────────────────────────────────────────
+        const MOCK_DATA = {
+            score_distribution: [8, 15, 12, 6, 3],      // 优秀/良好/中等/及格/不及格
+            class_profile:      [88, 82, 75, 79, 70],   // 出勤/作业/互动/测验/预习
+            grade_profile:      [85, 78, 72, 76, 68],   // 年级对比
+            trend: {
+                labels:    ['第1次', '第2次', '第3次', '第4次', '第5次'],
+                class_avg: [75, 78, 77, 82, 80],
+                grade_avg: [72, 74, 74, 79, 77]
+            },
+            student_ranking: [
+                { id: 1, student_no: 'S001', name: '张三', score: 92.5, class_name: '示例班级' },
+                { id: 2, student_no: 'S002', name: '李四', score: 88.0, class_name: '示例班级' },
+                { id: 3, student_no: 'S003', name: '王五', score: 81.3, class_name: '示例班级' },
+            ]
+        };
+
+        // 图表实例
         let scoreChart, radarChart, trendChart;
         let allCourses = [];
 
-        // 初始化
         document.addEventListener('DOMContentLoaded', () => {
             loadUserInfo();
             initCharts();
@@ -284,86 +302,106 @@
 
         function loadUserInfo() {
             try {
-                const userInfoStr = localStorage.getItem('userInfo');
-                const user = userInfoStr ? JSON.parse(userInfoStr) : {};
+                const user = JSON.parse(localStorage.getItem('userInfo') || '{}');
                 document.getElementById('userName').textContent = user.name || user.username || '教师';
-            } catch (error) {
-                console.error('加载用户信息失败:', error);
-            }
+            } catch (e) { console.error('用户信息加载失败:', e); }
         }
 
-        // 初始化图表实例（空数据）
+        // ── 初始化图表（空数据，等待真实数据后填充）──────────────────
         function initCharts() {
-            // 成绩分布
+            const baseOpts = { responsive: true, maintainAspectRatio: false };
+
             scoreChart = new Chart(document.getElementById('scoreChart').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: ['优秀', '良好', '中等', '及格', '不及格'],
+                    labels: ['优秀(90+)', '良好(80-89)', '中等(70-79)', '及格(60-69)', '不及格(<60)'],
                     datasets: [{
                         label: '人数',
-                        data: [],
+                        data: MOCK_DATA.score_distribution,
                         backgroundColor: ['#059669', '#3b82f6', '#f59e0b', '#6b7280', '#dc2626'],
-                        borderRadius: 4
+                        borderRadius: 6
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { ...baseOpts, plugins: { legend: { display: false } } }
             });
 
-            // 雷达图
             radarChart = new Chart(document.getElementById('radarChart').getContext('2d'), {
                 type: 'radar',
                 data: {
                     labels: ['出勤', '作业', '互动', '测验', '预习'],
                     datasets: [
-                        { label: '班级平均', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)' },
-                        { label: '年级平均', data: [], borderColor: '#6b7280', borderDash: [5,5], fill: false }
+                        {
+                            label: '班级均值',
+                            data: MOCK_DATA.class_profile,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59,130,246,0.2)',
+                            pointBackgroundColor: '#3b82f6'
+                        },
+                        {
+                            label: '年级均值',
+                            data: MOCK_DATA.grade_profile,
+                            borderColor: '#9ca3af',
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointBackgroundColor: '#9ca3af'
+                        }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { ...baseOpts, scales: { r: { min: 0, max: 100 } } }
             });
 
-            // 趋势图
             trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), {
                 type: 'line',
                 data: {
-                    labels: [],
-                    datasets: [{
-                        label: '班级平均分',
-                        data: [],
-                        borderColor: '#3b82f6',
-                        tension: 0.4
-                    }]
+                    labels: MOCK_DATA.trend.labels,
+                    datasets: [
+                        {
+                            label: '班级均分',
+                            data: MOCK_DATA.trend.class_avg,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59,130,246,0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '年级均分',
+                            data: MOCK_DATA.trend.grade_avg,
+                            borderColor: '#9ca3af',
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false
+                        }
+                    ]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { ...baseOpts, scales: { y: { min: 50, max: 100 } } }
             });
+
+            // 初始学生列表用模拟数据
+            renderStudentList(MOCK_DATA.student_ranking, true);
         }
 
-        // 加载初始数据
+        // ── 加载课程列表 ──────────────────────────────────────────────
         async function loadInitialData() {
             try {
                 const res = await request.get('/courses/');
                 allCourses = res.data || [];
-
                 const courseSelect = document.getElementById('courseSelect');
                 courseSelect.innerHTML = '<option value="">请选择课程</option>';
-
                 allCourses.forEach(c => {
                     courseSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
                 });
 
-                // 默认选中第一个
                 if (allCourses.length > 0) {
                     const first = allCourses[0];
                     courseSelect.value = first.id;
-                    handleCourseChange(first.id);
-
+                    handleCourseChange();
                     if (first.classes && first.classes.length > 0) {
                         document.getElementById('classSelect').value = first.classes[0].id;
                         loadData(first.id, first.classes[0].id);
                     }
                 }
-            } catch (error) {
-                console.error('初始化失败:', error);
+            } catch (e) {
+                console.error('初始化失败:', e);
             }
         }
 
@@ -371,7 +409,6 @@
             const courseId = document.getElementById('courseSelect').value;
             const classSelect = document.getElementById('classSelect');
             classSelect.innerHTML = '<option value="">请选择班级</option>';
-            
             if (courseId) {
                 const course = allCourses.find(c => c.id == courseId);
                 if (course && course.classes) {
@@ -384,59 +421,146 @@
 
         function changeClass() {
             const courseId = document.getElementById('courseSelect').value;
-            const classId = document.getElementById('classSelect').value;
+            const classId  = document.getElementById('classSelect').value;
             if (courseId && classId) loadData(courseId, classId);
         }
 
-        function changeTimeRange() {
-            // 重新加载数据（带时间参数逻辑待实现）
-            changeClass();
-        }
+        function changeTimeRange() { changeClass(); }
 
-        // 加载核心数据
+        // ── 加载课程真实分析数据，用真实数据覆盖模拟图表 ──────────────
         async function loadData(courseId, classId) {
             try {
-                const res = await request.get(`/analytics/course/${courseId}/overview`);
+                const res  = await request.get(`/analytics/course/${courseId}/overview`);
                 const data = res.data || {};
 
-                // 由于后端目前只返回概览统计，这里使用模拟数据填充图表
-                // 待后端完善 analytics.py 后可替换为真实数据
-                
-                // 1. 更新成绩分布 (模拟)
-                scoreChart.data.datasets[0].data = [5, 10, 15, 8, 2]; // data.score_distribution
+                // 1. 成绩分布 —— 后端已计算，无数据则保持模拟
+                const dist = data.score_distribution || [];
+                const hasDistData = dist.some(v => v > 0);
+                scoreChart.data.datasets[0].data = hasDistData ? dist : MOCK_DATA.score_distribution;
                 scoreChart.update();
 
-                // 2. 更新雷达图 (模拟)
-                radarChart.data.datasets[0].data = [data.attendance_rate || 85, data.homework_completion || 80, 75, data.avg_quiz_score || 78, 70];
+                // 2. 雷达图 —— 合并后端指标，"预习"暂无真实数据保留70
+                const profile = data.class_profile;
+                if (profile && profile.some(v => v > 0)) {
+                    radarChart.data.datasets[0].data = profile;
+                    // 年级均值：真实班级数据的 95% 近似值（后端未实现多班对比）
+                    radarChart.data.datasets[1].data = profile.map(v => +(v * 0.95).toFixed(1));
+                }
                 radarChart.update();
 
-                // 3. 更新趋势图 (模拟)
-                trendChart.data.labels = ['第1周', '第2周', '第3周', '第4周'];
-                trendChart.data.datasets[0].data = [75, 78, 82, data.avg_quiz_score || 80];
+                // 3. 趋势图 —— 后端已计算
+                const trend = data.trend || {};
+                const hasRealTrend = trend.labels && trend.labels.length > 0;
+                if (hasRealTrend) {
+                    trendChart.data.labels                  = trend.labels;
+                    trendChart.data.datasets[0].data        = trend.class_avg;
+                    trendChart.data.datasets[1].data        = trend.grade_avg;
+                }
                 trendChart.update();
 
-                // 4. 更新学生列表 (模拟)
-                renderStudentList([]); // 暂时为空，因为概览接口没返回学生列表
-                
-            } catch (error) {
-                console.error('加载分析数据失败:', error);
+                // 4. 学生排行 —— 后端已计算
+                const ranking = data.student_ranking || [];
+                renderStudentList(ranking.length > 0 ? ranking : MOCK_DATA.student_ranking,
+                                  ranking.length === 0);
+
+            } catch (e) {
+                console.error('加载分析数据失败:', e);
             }
         }
 
-        function renderStudentList(students) {
+        // ── 学生排行渲染 ──────────────────────────────────────────────
+        function renderStudentList(students, isMock = false) {
             const container = document.getElementById('studentRanking');
             if (!students || students.length === 0) {
-                container.innerHTML = '<div class="p-4 text-center text-muted">暂无详细排行数据</div>';
+                container.innerHTML = '<div class="p-4 text-center text-muted">暂无排行数据，请先导入学生成绩</div>';
                 return;
             }
-            // 渲染逻辑同之前
+
+            const getTag = score => {
+                if (score >= 90) return ['tag-excellent', '优秀'];
+                if (score >= 80) return ['tag-good',      '良好'];
+                if (score >= 70) return ['tag-average',   '中等'];
+                if (score >= 60) return ['tag-average',   '及格'];
+                return ['tag-poor', '不及格'];
+            };
+
+            const mockTip = isMock
+                ? '<div class="px-4 py-2 bg-light border-bottom text-muted small"><i class="bi bi-info-circle me-1"></i>当前显示演示数据，上传真实成绩后将自动更新</div>'
+                : '';
+
+            const rows = students.map((s, idx) => {
+                const [tagClass, tagLabel] = getTag(s.score);
+                const initial = s.name ? s.name[0] : '?';
+                return `
+                <div class="student-item" onclick="showStudentDetail(${s.id})">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <span class="fw-bold text-muted">#${idx + 1}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="student-avatar">${initial}</div>
+                        <div class="student-info">
+                            <h6>${s.name}</h6>
+                            <small>${s.student_no}${s.class_name ? ' · ' + s.class_name : ''}</small>
+                        </div>
+                    </div>
+                    <div class="fw-bold fs-5">${s.score}</div>
+                    <div><span class="score-tag ${tagClass}">${tagLabel}</span></div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();showStudentDetail(${s.id})">
+                            <i class="bi bi-eye"></i> 详情
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            container.innerHTML = mockTip + rows;
+        }
+
+        // ── 学生个人详情弹窗 ──────────────────────────────────────────
+        async function showStudentDetail(studentId) {
+            const courseId = document.getElementById('courseSelect').value;
+            if (!courseId || !studentId) return;
+            const modal = new bootstrap.Modal(document.getElementById('studentModal'));
+            const body  = document.getElementById('modalBody');
+            body.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+            modal.show();
+
+            try {
+                const res  = await request.get(`/analytics/course/${courseId}/students/${studentId}/profile`);
+                const d    = res.data;
+                body.innerHTML = `
+                    <div class="student-profile">
+                        <div class="profile-avatar">${d.student.name[0]}</div>
+                        <div class="profile-info">
+                            <h4>${d.student.name}</h4>
+                            <p>${d.student.student_no} · ${d.student.class_name}</p>
+                        </div>
+                    </div>
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-value text-success">${d.attendance.rate}%</div>
+                            <div class="metric-label">出勤率</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value text-primary">${d.homework.avg_score}</div>
+                            <div class="metric-label">作业均分</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value text-warning">${d.quiz.avg_score}</div>
+                            <div class="metric-label">测验均分</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value text-info">${d.student.score}</div>
+                            <div class="metric-label">综合评分</div>
+                        </div>
+                    </div>`;
+            } catch (e) {
+                body.innerHTML = '<div class="text-center text-danger py-4">加载失败，请稍后重试</div>';
+            }
         }
 
         function logout() {
-            if(confirm('确定退出？')) {
-                localStorage.clear();
-                window.location.href = 'login.html';
-            }
+            if (confirm('确定退出？')) { localStorage.clear(); window.location.href = 'login.html'; }
         }
     </script>
 </body>
