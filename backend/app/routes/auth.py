@@ -53,7 +53,7 @@ def register():
         password_hash=generate_password_hash(data['password']),
         name=data['name'],
         email=data.get('email'),
-        role=data.get('role', 'teacher')
+        role='teacher'
     )
 
     db.session.add(user)

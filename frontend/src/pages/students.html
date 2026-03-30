@@ -201,7 +201,7 @@
                 <div class="avatar"><i class="bi bi-person-fill"></i></div>
                 <div>
                     <div id="userName" class="user-name">加载中...</div>
-                    <div class="user-role">教师</div>
+                    <div id="userRole" class="user-role">加载中...</div>
                 </div>
             </div>
             <button onclick="logout()" class="btn-logout">
@@ -403,13 +403,7 @@
         });
 
         function loadUserInfo() {
-            try {
-                const userInfoStr = localStorage.getItem('userInfo');
-                const user = userInfoStr ? JSON.parse(userInfoStr) : {};
-                document.getElementById('userName').textContent = user.name || user.username || '教师';
-            } catch (error) {
-                console.error('加载用户信息失败:', error);
-            }
+            loadUserInfoToUI(); // 使用统一的用户信息加载函数
         }
 
         async function loadInitialData() {

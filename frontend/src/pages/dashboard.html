@@ -129,7 +129,7 @@
                 <div class="avatar"><i class="bi bi-person-fill"></i></div>
                 <div>
                     <div id="userName" class="user-name">加载中...</div>
-                    <div class="user-role">教师</div>
+                    <div id="userRole" class="user-role">加载中...</div>
                 </div>
             </div>
             <button onclick="logout()" class="btn-logout">
@@ -265,12 +265,8 @@
         let warningChart    = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. 显示用户名
-            try {
-                const userInfoStr = localStorage.getItem('userInfo');
-                const user = userInfoStr ? JSON.parse(userInfoStr) : {};
-                document.getElementById('userName').textContent = user.name || user.username || '教师';
-            } catch (e) { console.error('用户信息加载失败:', e); }
+            // 1. 显示用户信息（姓名和角色）
+            loadUserInfoToUI();
 
             // 2. 初始化图表（先用模拟数据渲染，让页面"有内容"）
             initCharts(MOCK.attendanceTrend, MOCK.warningDist);

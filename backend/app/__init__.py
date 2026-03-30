@@ -87,17 +87,46 @@ def create_app():
         db.create_all()
         print("✅ 数据库表创建成功")
 
-        if not User.query.filter_by(username='teacher').first():
-            from werkzeug.security import generate_password_hash
-            default_user = User(
-                username='teacher',
-                password_hash=generate_password_hash('123456'),
-                name='演示教师',
-                role='teacher'
-            )
-            db.session.add(default_user)
-            db.session.commit()
-            print("✅ 默认账号创建成功：teacher / 123456")
+        from werkzeug.security import generate_password_hash
+        default_users = [
+            {
+                'username': 'admin',
+                'password': '123456',
+                'name': '系统管理员',
+                'role': 'admin'
+            },
+            {
+                'username': 'teacher',
+                'password': '123456',
+                'name': '演示教师',
+                'role': 'teacher'
+            },
+            {
+                'username': 'assistant',
+                'password': '123456',
+                'name': '演示助教',
+                'role': 'assistant'
+            }
+        ]
+
+        created_users = []
+        for item in default_users:
+            existing_user = User.query.filter_by(username=item['username']).first()
+            if existing_user:
+                if existing_user.role != item['role']:
+                    existing_user.role = item['role']
+            else:
+                db.session.add(User(
+                    username=item['username'],
+                    password_hash=generate_password_hash(item['password']),
+                    name=item['name'],
+                    role=item['role']
+                ))
+                created_users.append(item['username'])
+        db.session.commit()
+
+        if created_users:
+            print(f"✅ 默认账号创建成功：{', '.join(created_users)} / 123456")
 
     # 前端页面路由 - 统一指向 pages 目录下的文件
     @app.route('/')

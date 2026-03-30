@@ -1,9 +1,14 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from ..models import db, Course, Class, Student, Warning, User
 from ..services.warning_engine import WarningEngine # 引入预警引擎计算分数
 
 courses_bp = Blueprint('courses', __name__)
+
+
+def _current_role():
+    claims = get_jwt()
+    return (claims.get('role') or 'teacher').lower()
 
 
 @courses_bp.route('/', methods=['GET'])
@@ -64,6 +69,9 @@ def get_courses():
 @jwt_required()
 def create_course():
     """创建课程"""
+    if _current_role() == 'assistant':
+        return jsonify({'success': False, 'message': '助教无权限创建课程'}), 403
+
     if not request.is_json:
         return jsonify(
             {'success': False, 'message': 'Content-Type必须是application/json'}
@@ -165,6 +173,9 @@ def classes(course_id):
             return jsonify({'success': False, 'message': f'获取班级失败: {str(e)}'}), 500
 
     # POST 创建班级
+    if _current_role() == 'assistant':
+        return jsonify({'success': False, 'message': '助教无权限创建班级'}), 403
+
     data = request.get_json()
     if not data:
         return jsonify({'success': False, 'message': '请求体为空'}), 400
@@ -233,6 +244,9 @@ def students(course_id, class_id):
             return jsonify({'success': False, 'message': f'获取学生失败: {str(e)}'}), 500
 
     # POST 添加学生
+    if _current_role() == 'assistant':
+        return jsonify({'success': False, 'message': '助教无权限添加学生'}), 403
+
     data = request.get_json()
     if not data:
         return jsonify({'success': False, 'message': '请求体为空'}), 400
@@ -303,3 +317,5 @@ def manage_student(student_id):
         except Exception as e:
             db.session.rollback()
             return jsonify({'success': False, 'message': f'修改失败: {str(e)}'}), 500
+    if _current_role() == 'assistant':
+        return jsonify({'success': False, 'message': '助教无权限修改或删除学生'}), 403

@@ -1,0 +1,41 @@
+✅ 数据库表创建成功
+🚀 服务器启动在端口 5002
+📱 访问地址：http://127.0.0.1:5002/pages/login.html
+ * Serving Flask app 'app'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5002
+[33mPress CTRL+C to quit[0m
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 617-208-679
+127.0.0.1 - - [29/Mar/2026 11:53:53] "GET /pages/login.html HTTP/1.1" 200 -
+127.0.0.1 - - [29/Mar/2026 11:53:53] "GET /js/config.js HTTP/1.1" 200 -
+127.0.0.1 - - [29/Mar/2026 11:53:53] "GET /js/request.js HTTP/1.1" 200 -
+127.0.0.1 - - [29/Mar/2026 11:53:53] "GET /pages/login.html HTTP/1.1" 200 -
+127.0.0.1 - - [29/Mar/2026 11:53:53] "GET /js/config.js HTTP/1.1" 200 -
+127.0.0.1 - - [29/Mar/2026 11:53:53] "GET /js/request.js HTTP/1.1" 200 -
+127.0.0.1 - - [29/Mar/2026 11:54:06] "GET /pages/login.html HTTP/1.1" 200 -
+127.0.0.1 - - [29/Mar/2026 11:54:06] "GET /js/config.js HTTP/1.1" 200 -
+127.0.0.1 - - [29/Mar/2026 11:54:06] "GET /js/request.js HTTP/1.1" 200 -
+127.0.0.1 - - [29/Mar/2026 11:54:08] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+127.0.0.1 - - [29/Mar/2026 11:54:43] "[36mGET /pages/login.html HTTP/1.1[0m" 304 -
+127.0.0.1 - - [29/Mar/2026 11:54:43] "[36mGET /js/config.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [29/Mar/2026 11:54:43] "[36mGET /js/request.js HTTP/1.1[0m" 304 -
+ * Detected change in '/Users/a2914452089/Desktop/teaching-system/backend/app/utils/import_helpers.py', reloading
+✅ 数据库表创建成功
+🚀 服务器启动在端口 5002
+📱 访问地址：http://127.0.0.1:5002/pages/login.html
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 617-208-679
+ * Detected change in '/Users/a2914452089/Desktop/teaching-system/backend/app/routes/data.py', reloading
+✅ 数据库表创建成功
+🚀 服务器启动在端口 5002
+📱 访问地址：http://127.0.0.1:5002/pages/login.html
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 617-208-679
+✅ 数据库表创建成功
+🚀 服务器启动在端口 5002
+📱 访问地址：http://127.0.0.1:5002/pages/login.html

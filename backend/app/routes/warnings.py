@@ -1,10 +1,15 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from ..models import db, Warning, Student, Course
 from ..models.data import Attendance, Homework, Quiz
 from datetime import datetime
 
 warnings_bp = Blueprint('warnings', __name__)
+
+
+def _current_role():
+    claims = get_jwt()
+    return (claims.get('role') or 'teacher').lower()
 
 
 @warnings_bp.route('/', methods=['GET'])
@@ -198,6 +203,9 @@ def get_warning_detail(warning_id):
 @jwt_required()
 def process_warning(warning_id):
     """处理预警"""
+    if _current_role() == 'assistant':
+        return jsonify({'success': False, 'message': '助教无权限处理预警'}), 403
+
     try:
         warning = Warning.query.get(warning_id)
         if not warning:
@@ -295,6 +303,9 @@ def get_warning_history(warning_id):
 @jwt_required()
 def generate_warnings():
     """手动触发预警生成"""
+    if _current_role() == 'assistant':
+        return jsonify({'success': False, 'message': '助教无权限触发预警生成'}), 403
+
     try:
         # 这里应该调用新的 WarningEngine
         from ..services.warning_engine import WarningEngine

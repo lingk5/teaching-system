@@ -22,22 +22,53 @@ def init_database():
             db.create_all()
             print("✅ 所有表创建成功")
             
-            # 2. 检查是否已有默认用户
-            default_user = User.query.filter_by(username='teacher').first()
-            if not default_user:
-                print("\n👤 创建默认管理员账号...")
-                user = User(
-                    username='teacher',
-                    password_hash=generate_password_hash('123456'),
-                    name='演示教师',
-                    email='',
-                    role='teacher'
-                )
-                db.session.add(user)
+            # 2. 创建/检查默认用户（admin, teacher, assistant）
+            default_users = [
+                {
+                    'username': 'admin',
+                    'password': '123456',
+                    'name': '系统管理员',
+                    'role': 'admin'
+                },
+                {
+                    'username': 'teacher',
+                    'password': '123456',
+                    'name': '演示教师',
+                    'role': 'teacher'
+                },
+                {
+                    'username': 'assistant',
+                    'password': '123456',
+                    'name': '演示助教',
+                    'role': 'assistant'
+                }
+            ]
+            
+            created_count = 0
+            for user_info in default_users:
+                existing_user = User.query.filter_by(username=user_info['username']).first()
+                if not existing_user:
+                    user = User(
+                        username=user_info['username'],
+                        password_hash=generate_password_hash(user_info['password']),
+                        name=user_info['name'],
+                        email='',
+                        role=user_info['role']
+                    )
+                    db.session.add(user)
+                    created_count += 1
+                    print(f"✅ 创建账号：{user_info['username']} / 123456 ({user_info['role']})")
+                else:
+                    # 如果用户已存在，更新角色信息以确保正确
+                    if existing_user.role != user_info['role']:
+                        existing_user.role = user_info['role']
+                        print(f"🔄 更新账号角色：{user_info['username']} -> {user_info['role']}")
+            
+            if created_count > 0:
                 db.session.commit()
-                print("✅ 默认账号创建成功：teacher / 123456")
+                print(f"✅ 已创建 {created_count} 个新账号")
             else:
-                print("\n✅ 默认账号已存在：teacher / 123456")
+                print("✅ 所有默认账号已存在")
             
             # 3. 显示连接信息
             print("\n" + "=" * 50)

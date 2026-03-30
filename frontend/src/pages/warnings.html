@@ -149,7 +149,7 @@
         <div class="sidebar-footer">
             <div class="user-info">
                 <div class="avatar"><i class="bi bi-person-fill"></i></div>
-                <div><div id="userName" class="user-name">加载中...</div><div class="user-role">教师</div></div>
+                <div><div id="userName" class="user-name">加载中...</div><div id="userRole" class="user-role">加载中...</div></div>
             </div>
             <button onclick="logout()" class="btn-logout"><i class="bi bi-box-arrow-right"></i> 退出登录</button>
         </div>
@@ -306,6 +306,14 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // 路由守卫
+        try {
+            if (typeof checkAuth === 'function') checkAuth();
+        } catch (e) {
+            console.error('Auth check failed:', e);
+            window.location.href = 'login.html';
+        }
+        
         // 全局变量
         let currentFilter = 'all';
         let currentPage = 1;
@@ -320,6 +328,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             loadUserInfo();
+            if (typeof applyRoleUI === 'function') applyRoleUI();
             loadInitialData();
             startAutoRefresh();
         });
@@ -567,7 +576,9 @@
 
         function handleClassChange() { fetchWarnings(); }
 
-        function loadUserInfo() { /* 同之前 */ }
+        function loadUserInfo() {
+            loadUserInfoToUI(); // 使用统一的用户信息加载函数
+        }
         function logout() { localStorage.clear(); window.location.href='login.html'; }
 
         // 处理相关逻辑保持不变

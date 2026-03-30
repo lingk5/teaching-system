@@ -11,7 +11,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False, comment='密码哈希')
     name = db.Column(db.String(50), nullable=False, comment='教师姓名')
     email = db.Column(db.String(120), unique=True, comment='邮箱')
-    role = db.Column(db.String(20), default='teacher', comment='角色：admin/teacher')
+    role = db.Column(db.String(20), default='teacher', comment='角色：admin/teacher/assistant')
     created_at = db.Column(db.DateTime, default=datetime.now)
     is_active = db.Column(db.Boolean, default=True)
 

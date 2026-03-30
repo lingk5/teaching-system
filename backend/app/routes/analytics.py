@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required
 from sqlalchemy import func, case
 from datetime import datetime, timedelta
 from ..models import db, Student, Class
@@ -9,6 +10,7 @@ from ..services.warning_engine import WarningEngine
 analytics_bp = Blueprint('analytics', __name__)
 
 @analytics_bp.route('/course/<int:course_id>/overview')
+@jwt_required()
 def course_overview(course_id):
     """课程概览数据"""
     # 1. 基础统计
@@ -88,10 +90,10 @@ def course_overview(course_id):
 
     # 4. 学习趋势 (最近5次测验的平均分)
     recent_quizzes = db.session.query(
-        Quiz.title, func.avg(Quiz.score)
+        Quiz.title, func.avg(Quiz.score), func.max(Quiz.created_at).label('latest_date')
     ).filter(
         Quiz.student_id.in_(student_ids), Quiz.course_id == course_id
-    ).group_by(Quiz.title).order_by(Quiz.created_at).limit(5).all()
+    ).group_by(Quiz.title).order_by(func.max(Quiz.created_at).desc()).limit(5).all()
     
     trend_labels = [q[0] for q in recent_quizzes]
     trend_data = [round(q[1], 1) for q in recent_quizzes]
@@ -129,6 +131,7 @@ def course_overview(course_id):
     })
 
 @analytics_bp.route('/course/<int:course_id>/students/<int:student_id>/profile')
+@jwt_required()
 def student_profile(course_id, student_id):
     """学生个人学习档案"""
     student = Student.query.get_or_404(student_id)

@@ -142,7 +142,7 @@
                 <div class="avatar"><i class="bi bi-person-fill"></i></div>
                 <div>
                     <div id="userName" class="user-name">加载中...</div>
-                    <div class="user-role">教师</div>
+                    <div id="userRole" class="user-role">加载中...</div>
                 </div>
             </div>
             <button onclick="logout()" class="btn-logout">
@@ -242,15 +242,8 @@
             // 1. 高亮当前菜单
             document.getElementById('nav-courses')?.classList.add('active');
             
-            // 2. 显示用户名 (从 localStorage 获取)
-            try {
-                const userInfoStr = localStorage.getItem('userInfo');
-                const user = userInfoStr ? JSON.parse(userInfoStr) : {};
-                document.getElementById('userName').textContent = user.name || user.username || '教师';
-            } catch (error) {
-                console.error('加载用户信息失败:', error);
-                document.getElementById('userName').textContent = '教师';
-            }
+            // 2. 显示用户信息 (从 localStorage 获取)
+            loadUserInfoToUI();
             
             // 3. 加载课程列表
             loadCourses();

@@ -1,0 +1,26 @@
+✅ 数据库表创建成功
+🚀 服务器启动在端口 5001
+📱 访问地址：http://127.0.0.1:5001/pages/login.html
+ * Serving Flask app 'app'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+[33mPress CTRL+C to quit[0m
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 617-208-679
+ * Detected change in '/Users/a2914452089/Desktop/teaching-system/backend/app/models/user.py', reloading
+✅ 数据库表创建成功
+🚀 服务器启动在端口 5001
+📱 访问地址：http://127.0.0.1:5001/pages/login.html
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 617-208-679
+ * Detected change in '/Users/a2914452089/Desktop/teaching-system/backend/init_mysql.py', reloading
+✅ 数据库表创建成功
+🚀 服务器启动在端口 5001
+📱 访问地址：http://127.0.0.1:5001/pages/login.html
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 617-208-679
+127.0.0.1 - - [29/Mar/2026 11:51:57] "[33mGET /api/health HTTP/1.1[0m" 404 -

@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "run.py", line 1, in <module>
+    from app import create_app  # 这样导入没问题，因为 run.py 在 backend 根目录
+  File "/Users/a2914452089/Desktop/teaching-system/backend/app/__init__.py", line 3, in <module>
+    from flask_jwt_extended import JWTManager
+ModuleNotFoundError: No module named 'flask_jwt_extended'
