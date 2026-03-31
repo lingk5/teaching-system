@@ -96,6 +96,22 @@ class RolePermissionTests(unittest.TestCase):
         self.assertNotIn('classes', payload['stats'])
         self.assertNotIn('interactions', payload['stats'])
 
+    def test_admin_can_list_users(self):
+        response = self.client.get('/api/auth/users', headers=self.auth_headers('admin'))
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertTrue(payload['success'])
+        usernames = {item['username'] for item in payload['data']}
+        self.assertIn('admin', usernames)
+        self.assertIn('teacher', usernames)
+        self.assertIn('assistant', usernames)
+
+    def test_teacher_cannot_list_users(self):
+        response = self.client.get('/api/auth/users', headers=self.auth_headers('teacher'))
+
+        self.assertEqual(response.status_code, 403)
+
     def test_assistant_cannot_import_courses(self):
         response = self.client.post(
             '/api/data/courses/import',

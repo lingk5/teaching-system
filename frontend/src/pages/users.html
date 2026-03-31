@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - 教学监督系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <script src="../js/config.js"></script>
+    <script src="../js/request.js"></script>
+    <script src="../js/auth.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f5f7fa; }
+        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; background: #1e293b; color: white; overflow-y: auto; z-index: 1000; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h4 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .sidebar-menu { padding: 15px 0; flex: 1; }
+        .menu-item { padding: 12px 20px; display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.7); text-decoration: none; transition: all 0.3s; border-left: 3px solid transparent; }
+        .menu-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .menu-item.active { background: rgba(102, 126, 234, 0.2); color: white; border-left-color: #667eea; }
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .avatar { width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .user-name { font-weight: 600; font-size: 14px; }
+        .user-role { font-size: 12px; opacity: 0.7; }
+        .btn-logout { width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; font-size: 13px; cursor: pointer; }
+        .btn-logout:hover { background: rgba(255,255,255,0.2); }
+        .main-content { margin-left: 260px; padding: 30px; }
+        .card-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    </style>
+
+    <script>
+        try {
+            if (typeof checkAuth === 'function') checkAuth();
+        } catch (e) {
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h4><i class="bi bi-mortarboard-fill"></i> 教学监督系统</h4>
+        </div>
+
+        <div class="sidebar-menu">
+            <a href="dashboard.html" class="menu-item" id="nav-dashboard"><i class="bi bi-speedometer2"></i> 仪表盘</a>
+            <a href="courses.html" class="menu-item" id="nav-courses"><i class="bi bi-book"></i> 课程管理</a>
+            <a href="users.html" class="menu-item active" id="nav-users" data-capability="manage_users"><i class="bi bi-person-gear"></i> 用户管理</a>
+            <a href="students.html" class="menu-item" id="nav-students"><i class="bi bi-people"></i> 学生管理</a>
+            <a href="data-import.html" class="menu-item" id="nav-import"><i class="bi bi-upload"></i> 数据导入</a>
+            <a href="analytics.html" class="menu-item" id="nav-analytics"><i class="bi bi-graph-up"></i> 学情分析</a>
+            <a href="warnings.html" class="menu-item" id="nav-warnings"><i class="bi bi-exclamation-triangle"></i> 预警中心</a>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="avatar"><i class="bi bi-person-fill"></i></div>
+                <div>
+                    <div id="userName" class="user-name">加载中...</div>
+                    <div id="userRole" class="user-role">加载中...</div>
+                </div>
+            </div>
+            <button onclick="logout()" class="btn-logout"><i class="bi bi-box-arrow-right"></i> 退出登录</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="mb-1"><i class="bi bi-person-gear text-primary me-2"></i>用户管理</h3>
+                <p class="text-muted mb-0">管理员可创建并维护教师/助教账号</p>
+            </div>
+            <button class="btn btn-primary" data-capability="manage_users" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                <i class="bi bi-person-plus me-1"></i>新增用户
+            </button>
+        </div>
+
+        <div class="card-panel p-3">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>姓名</th>
+                            <th>账号</th>
+                            <th>邮箱</th>
+                            <th>角色</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <tr><td colspan="7" class="text-center text-muted py-4">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="createUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增用户</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createUserForm">
+                        <div class="mb-3">
+                            <label class="form-label">姓名</label>
+                            <input class="form-control" id="createName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">账号</label>
+                            <input class="form-control" id="createUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">邮箱</label>
+                            <input class="form-control" id="createEmail" type="email">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">密码</label>
+                            <input class="form-control" id="createPassword" type="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">角色</label>
+                            <select class="form-select" id="createRole" required>
+                                <option value="teacher">教师</option>
+                                <option value="assistant">助教</option>
+                                <option value="admin">管理员</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button class="btn btn-primary" data-capability="manage_users" onclick="createUser()">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑用户</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="editId">
+                        <div class="mb-3">
+                            <label class="form-label">姓名</label>
+                            <input class="form-control" id="editName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">邮箱</label>
+                            <input class="form-control" id="editEmail" type="email">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">角色</label>
+                            <select class="form-select" id="editRole" required>
+                                <option value="teacher">教师</option>
+                                <option value="assistant">助教</option>
+                                <option value="admin">管理员</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">状态</label>
+                            <select class="form-select" id="editActive">
+                                <option value="true">启用</option>
+                                <option value="false">停用</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">重置密码（可选）</label>
+                            <input class="form-control" id="editPassword" type="password" placeholder="不填则不修改密码">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button class="btn btn-primary" data-capability="manage_users" onclick="saveUser()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let users = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadUserInfoToUI();
+            if (typeof applyRoleUI === 'function') applyRoleUI();
+            const me = window.currentUser || {};
+            if ((me.role || '').toLowerCase() !== 'admin') {
+                alert('仅管理员可访问用户管理');
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            await loadUsers();
+        });
+
+        function roleLabel(role) {
+            const map = { admin: '管理员', teacher: '教师', assistant: '助教' };
+            return map[(role || '').toLowerCase()] || role;
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await request.get('/auth/users');
+                users = response.data || [];
+                renderUsers();
+            } catch (error) {
+                document.getElementById('userTableBody').innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">加载失败：${error.message}</td></tr>`;
+            }
+        }
+
+        function renderUsers() {
+            const body = document.getElementById('userTableBody');
+            if (!users.length) {
+                body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">暂无用户</td></tr>';
+                return;
+            }
+            body.innerHTML = users.map(u => `
+                <tr>
+                    <td>${u.id}</td>
+                    <td>${u.name || ''}</td>
+                    <td>${u.username || ''}</td>
+                    <td>${u.email || ''}</td>
+                    <td>${roleLabel(u.role)}</td>
+                    <td>${u.is_active === false ? '<span class="badge bg-secondary">停用</span>' : '<span class="badge bg-success">启用</span>'}</td>
+                    <td><button class="btn btn-sm btn-outline-primary" data-capability="manage_users" onclick="openEdit(${u.id})">编辑</button></td>
+                </tr>
+            `).join('');
+            if (typeof applyRoleUI === 'function') applyRoleUI();
+        }
+
+        async function createUser() {
+            const payload = {
+                name: document.getElementById('createName').value.trim(),
+                username: document.getElementById('createUsername').value.trim(),
+                email: document.getElementById('createEmail').value.trim() || null,
+                password: document.getElementById('createPassword').value,
+                role: document.getElementById('createRole').value
+            };
+            try {
+                await request.post('/auth/users', payload);
+                bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide();
+                document.getElementById('createUserForm').reset();
+                await loadUsers();
+                alert('用户创建成功');
+            } catch (error) {
+                alert(`创建失败：${error.message}`);
+            }
+        }
+
+        function openEdit(userId) {
+            const u = users.find(item => item.id === userId);
+            if (!u) return;
+            document.getElementById('editId').value = String(u.id);
+            document.getElementById('editName').value = u.name || '';
+            document.getElementById('editEmail').value = u.email || '';
+            document.getElementById('editRole').value = (u.role || 'teacher').toLowerCase();
+            document.getElementById('editActive').value = String(u.is_active !== false);
+            document.getElementById('editPassword').value = '';
+            new bootstrap.Modal(document.getElementById('editUserModal')).show();
+        }
+
+        async function saveUser() {
+            const id = document.getElementById('editId').value;
+            const payload = {
+                name: document.getElementById('editName').value.trim(),
+                email: document.getElementById('editEmail').value.trim() || null,
+                role: document.getElementById('editRole').value,
+                is_active: document.getElementById('editActive').value === 'true'
+            };
+            const pwd = document.getElementById('editPassword').value;
+            if (pwd) payload.password = pwd;
+
+            try {
+                await request.put(`/auth/users/${id}`, payload);
+                bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                await loadUsers();
+                alert('用户更新成功');
+            } catch (error) {
+                alert(`更新失败：${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

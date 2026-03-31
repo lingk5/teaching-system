@@ -77,10 +77,21 @@ test('currentUserCan exposes role capabilities', () => {
     const teacherContext = loadAuthContext({ role: 'teacher' });
     assert.equal(teacherContext.currentUserCan('manage_users'), false);
     assert.equal(teacherContext.currentUserCan('manage_courses'), true);
+    assert.equal(teacherContext.canRoleAccessPage('teacher', 'users.html'), false);
 
     const assistantContext = loadAuthContext({ role: 'assistant' });
     assert.equal(assistantContext.currentUserCan('manage_courses'), false);
     assert.equal(assistantContext.currentUserCan('process_warnings'), false);
+});
+
+
+test('admin users page is treated as admin-only home and page route', () => {
+    const adminContext = loadAuthContext({ role: 'admin' });
+    assert.equal(adminContext.getRoleHomePage('admin'), 'users.html');
+    assert.equal(adminContext.canRoleAccessPage('admin', 'users.html'), true);
+
+    const teacherContext = loadAuthContext({ role: 'teacher' });
+    assert.equal(teacherContext.canRoleAccessPage('teacher', 'users.html'), false);
 });
 
 

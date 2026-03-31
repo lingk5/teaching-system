@@ -11,6 +11,7 @@ class RbacUiRegressionTests(unittest.TestCase):
         self.repo_root = Path(__file__).resolve().parents[2]
         self.login_page = self.repo_root / "frontend" / "src" / "pages" / "login.html"
         self.warnings_page = self.repo_root / "frontend" / "src" / "pages" / "warnings.html"
+        self.users_page = self.repo_root / "frontend" / "src" / "pages" / "users.html"
 
     def test_login_page_lists_admin_and_assistant_demo_accounts(self):
         content = self.login_page.read_text(encoding="utf-8")
@@ -21,6 +22,16 @@ class RbacUiRegressionTests(unittest.TestCase):
         content = self.warnings_page.read_text(encoding="utf-8")
         self.assertIn("checkAuth", content)
         self.assertIn("applyRoleUI", content)
+
+    def test_users_page_exists_for_admin_console(self):
+        content = self.users_page.read_text(encoding="utf-8")
+        self.assertIn("用户管理", content)
+        self.assertIn("/auth/users", content)
+        self.assertIn("仅管理员可访问用户管理", content)
+
+    def test_login_page_redirects_admin_to_users_console(self):
+        content = self.login_page.read_text(encoding="utf-8")
+        self.assertIn("if (normalized === 'admin') return 'users.html';", content)
 
     def test_default_admin_teacher_assistant_accounts_seeded(self):
         db_fd, db_path = tempfile.mkstemp(prefix="rbac_seed_", suffix=".db")

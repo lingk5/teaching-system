@@ -151,6 +151,11 @@ def create_app():
     def students_page():
         return app.send_static_file('pages/students.html')
 
+    @app.route('/users')
+    @app.route('/users.html')
+    def users_page():
+        return app.send_static_file('pages/users.html')
+
     @app.route('/data-import')
     @app.route('/data-import.html')
     def data_import_page():

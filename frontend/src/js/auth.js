@@ -1,13 +1,13 @@
 const API_BASE = '/api';
 
 const ROLE_HOME_PAGE = {
-    admin: 'dashboard.html',
+    admin: 'users.html',
     teacher: 'dashboard.html',
     assistant: 'analytics.html'
 };
 
 const ROLE_ALLOWED_PAGES = {
-    admin: new Set(['dashboard.html', 'courses.html', 'students.html', 'data-import.html', 'analytics.html', 'warnings.html', 'index.html']),
+    admin: new Set(['dashboard.html', 'courses.html', 'users.html', 'students.html', 'data-import.html', 'analytics.html', 'warnings.html', 'index.html']),
     teacher: new Set(['dashboard.html', 'courses.html', 'students.html', 'data-import.html', 'analytics.html', 'warnings.html', 'index.html']),
     assistant: new Set(['dashboard.html', 'courses.html', 'students.html', 'analytics.html', 'warnings.html', 'index.html'])
 };
@@ -21,6 +21,7 @@ const ROLE_CAPABILITIES = {
 const NAV_PAGE_MAP = {
     'nav-dashboard': 'dashboard.html',
     'nav-courses': 'courses.html',
+    'nav-users': 'users.html',
     'nav-students': 'students.html',
     'nav-import': 'data-import.html',
     'nav-analytics': 'analytics.html',

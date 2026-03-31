@@ -94,6 +94,7 @@
     <script>
         function getHomePageByRole(role) {
             const normalized = (role || 'teacher').toLowerCase();
+            if (normalized === 'admin') return 'users.html';
             if (normalized === 'assistant') return 'analytics.html';
             return 'dashboard.html';
         }
