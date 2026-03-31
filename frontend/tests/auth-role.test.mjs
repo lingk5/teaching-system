@@ -73,15 +73,18 @@ test('currentUserCan exposes role capabilities', () => {
     assert.equal(typeof adminContext.currentUserCan, 'function');
     assert.equal(adminContext.currentUserCan('manage_users'), true);
     assert.equal(adminContext.currentUserCan('manage_courses'), true);
+    assert.equal(adminContext.currentUserCan('export_reports'), true);
 
     const teacherContext = loadAuthContext({ role: 'teacher' });
     assert.equal(teacherContext.currentUserCan('manage_users'), false);
     assert.equal(teacherContext.currentUserCan('manage_courses'), true);
+    assert.equal(teacherContext.currentUserCan('export_reports'), true);
     assert.equal(teacherContext.canRoleAccessPage('teacher', 'users.html'), false);
 
     const assistantContext = loadAuthContext({ role: 'assistant' });
     assert.equal(assistantContext.currentUserCan('manage_courses'), false);
     assert.equal(assistantContext.currentUserCan('process_warnings'), false);
+    assert.equal(assistantContext.currentUserCan('export_reports'), false);
 });
 
 

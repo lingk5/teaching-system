@@ -17,133 +17,152 @@
   <text x="800" y="46" text-anchor="middle" class="title">图4.5 数据库 E-R 图</text>
 
   <!-- 用户 -->
-  <rect x="120" y="220" width="180" height="92" class="entity"/>
-  <text x="210" y="275" text-anchor="middle" class="entity-text">用户</text>
-  <ellipse cx="85" cy="150" rx="82" ry="42" class="attribute"/>
-  <text x="85" y="158" text-anchor="middle" class="attr-text">用户名</text>
-  <line x1="135" y1="185" x2="170" y2="220" class="line"/>
-  <ellipse cx="270" cy="125" rx="82" ry="42" class="attribute"/>
-  <text x="270" y="133" text-anchor="middle" class="attr-text">姓名</text>
-  <line x1="255" y1="167" x2="240" y2="220" class="line"/>
-  <ellipse cx="90" cy="380" rx="82" ry="42" class="attribute"/>
-  <text x="90" y="388" text-anchor="middle" class="attr-text">角色</text>
-  <line x1="145" y1="350" x2="185" y2="312" class="line"/>
+  <rect x="150" y="245" width="180" height="92" class="entity"/>
+  <text x="240" y="300" text-anchor="middle" class="entity-text">用户</text>
+  <ellipse cx="105" cy="175" rx="82" ry="42" class="attribute"/>
+  <text x="105" y="183" text-anchor="middle" class="attr-text">用户名</text>
+  <line x1="155" y1="205" x2="200" y2="245" class="line"/>
+  <ellipse cx="285" cy="150" rx="82" ry="42" class="attribute"/>
+  <text x="285" y="158" text-anchor="middle" class="attr-text">姓名</text>
+  <line x1="272" y1="191" x2="265" y2="245" class="line"/>
+  <ellipse cx="110" cy="420" rx="82" ry="42" class="attribute"/>
+  <text x="110" y="428" text-anchor="middle" class="attr-text">角色</text>
+  <line x1="165" y1="390" x2="205" y2="337" class="line"/>
 
   <!-- 课程 -->
-  <rect x="460" y="220" width="200" height="92" class="entity"/>
-  <text x="560" y="275" text-anchor="middle" class="entity-text">课程</text>
-  <ellipse cx="490" cy="118" rx="96" ry="42" class="attribute"/>
-  <text x="490" y="126" text-anchor="middle" class="attr-text">课程名称</text>
-  <line x1="515" y1="160" x2="535" y2="220" class="line"/>
-  <ellipse cx="650" cy="118" rx="88" ry="42" class="attribute"/>
-  <text x="650" y="126" text-anchor="middle" class="attr-text">课程代码</text>
-  <line x1="630" y1="160" x2="605" y2="220" class="line"/>
-  <ellipse cx="560" cy="388" rx="76" ry="40" class="attribute"/>
-  <text x="560" y="396" text-anchor="middle" class="attr-text">学期</text>
-  <line x1="560" y1="348" x2="560" y2="312" class="line"/>
+  <rect x="410" y="220" width="200" height="92" class="entity"/>
+  <text x="510" y="275" text-anchor="middle" class="entity-text">课程</text>
+  <ellipse cx="440" cy="118" rx="96" ry="42" class="attribute"/>
+  <text x="440" y="126" text-anchor="middle" class="attr-text">课程名称</text>
+  <line x1="462" y1="160" x2="485" y2="220" class="line"/>
+  <ellipse cx="600" cy="118" rx="88" ry="42" class="attribute"/>
+  <text x="600" y="126" text-anchor="middle" class="attr-text">课程代码</text>
+  <line x1="585" y1="160" x2="555" y2="220" class="line"/>
+  <ellipse cx="510" cy="395" rx="76" ry="40" class="attribute"/>
+  <text x="510" y="403" text-anchor="middle" class="attr-text">学期</text>
+  <line x1="510" y1="355" x2="510" y2="312" class="line"/>
 
   <!-- 班级 -->
-  <rect x="840" y="220" width="180" height="92" class="entity"/>
-  <text x="930" y="275" text-anchor="middle" class="entity-text">班级</text>
-  <ellipse cx="948" cy="122" rx="88" ry="42" class="attribute"/>
-  <text x="948" y="130" text-anchor="middle" class="attr-text">班级名称</text>
-  <line x1="944" y1="164" x2="936" y2="220" class="line"/>
+  <rect x="800" y="220" width="180" height="92" class="entity"/>
+  <text x="890" y="275" text-anchor="middle" class="entity-text">班级</text>
+  <ellipse cx="910" cy="124" rx="88" ry="42" class="attribute"/>
+  <text x="910" y="132" text-anchor="middle" class="attr-text">班级名称</text>
+  <line x1="904" y1="166" x2="896" y2="220" class="line"/>
 
   <!-- 学生 -->
-  <rect x="800" y="650" width="180" height="92" class="entity"/>
-  <text x="890" y="705" text-anchor="middle" class="entity-text">学生</text>
-  <ellipse cx="650" cy="585" rx="78" ry="40" class="attribute"/>
-  <text x="650" y="593" text-anchor="middle" class="attr-text">学号</text>
-  <line x1="705" y1="615" x2="800" y2="680" class="line"/>
-  <ellipse cx="650" cy="685" rx="78" ry="40" class="attribute"/>
-  <text x="650" y="693" text-anchor="middle" class="attr-text">姓名</text>
-  <line x1="728" y1="685" x2="800" y2="696" class="line"/>
-  <ellipse cx="650" cy="785" rx="88" ry="40" class="attribute"/>
-  <text x="650" y="793" text-anchor="middle" class="attr-text">性别</text>
-  <line x1="735" y1="775" x2="800" y2="720" class="line"/>
+  <rect x="800" y="730" width="180" height="92" class="entity"/>
+  <text x="890" y="785" text-anchor="middle" class="entity-text">学生</text>
+  <ellipse cx="630" cy="650" rx="78" ry="40" class="attribute"/>
+  <text x="630" y="658" text-anchor="middle" class="attr-text">学号</text>
+  <line x1="698" y1="675" x2="800" y2="760" class="line"/>
+  <ellipse cx="630" cy="760" rx="78" ry="40" class="attribute"/>
+  <text x="630" y="768" text-anchor="middle" class="attr-text">姓名</text>
+  <line x1="708" y1="760" x2="800" y2="776" class="line"/>
+  <ellipse cx="635" cy="870" rx="88" ry="40" class="attribute"/>
+  <text x="635" y="878" text-anchor="middle" class="attr-text">性别</text>
+  <line x1="720" y1="852" x2="800" y2="798" class="line"/>
 
   <!-- 右侧记录实体 -->
-  <rect x="1230" y="120" width="220" height="84" class="entity"/>
-  <text x="1340" y="172" text-anchor="middle" class="entity-text">考勤记录</text>
-  <rect x="1230" y="300" width="220" height="84" class="entity"/>
-  <text x="1340" y="352" text-anchor="middle" class="entity-text">作业记录</text>
-  <rect x="1230" y="648" width="220" height="84" class="entity"/>
-  <text x="1340" y="700" text-anchor="middle" class="entity-text">测验记录</text>
-  <rect x="1230" y="798" width="220" height="84" class="entity"/>
-  <text x="1340" y="850" text-anchor="middle" class="entity-text">互动记录</text>
-  <rect x="1110" y="938" width="220" height="84" class="entity"/>
-  <text x="1220" y="990" text-anchor="middle" class="entity-text">预警记录</text>
+  <rect x="1300" y="128" width="220" height="84" class="entity"/>
+  <text x="1410" y="180" text-anchor="middle" class="entity-text">考勤记录</text>
+  <rect x="1300" y="288" width="220" height="84" class="entity"/>
+  <text x="1410" y="340" text-anchor="middle" class="entity-text">作业记录</text>
+  <rect x="1300" y="478" width="220" height="84" class="entity"/>
+  <text x="1410" y="530" text-anchor="middle" class="entity-text">测验记录</text>
+  <rect x="1300" y="658" width="220" height="84" class="entity"/>
+  <text x="1410" y="710" text-anchor="middle" class="entity-text">互动记录</text>
+  <rect x="1300" y="858" width="220" height="84" class="entity"/>
+  <text x="1410" y="910" text-anchor="middle" class="entity-text">预警记录</text>
 
-  <!-- 关系 -->
-  <polygon points="320,266 380,206 440,266 380,326" class="relation"/>
-  <text x="380" y="274" text-anchor="middle" class="relation-text">开设</text>
+  <!-- 主关系 -->
+  <polygon points="335,281 370,246 405,281 370,316" class="relation"/>
+  <text x="370" y="289" text-anchor="middle" class="relation-text">开设</text>
 
-  <polygon points="700,266 760,206 820,266 760,326" class="relation"/>
-  <text x="760" y="274" text-anchor="middle" class="relation-text">包含</text>
+  <polygon points="650,266 705,211 760,266 705,321" class="relation"/>
+  <text x="705" y="274" text-anchor="middle" class="relation-text">包含</text>
 
-  <polygon points="830,540 890,480 950,540 890,600" class="relation"/>
-  <text x="890" y="548" text-anchor="middle" class="relation-text">拥有</text>
+  <polygon points="830,590 890,530 950,590 890,650" class="relation"/>
+  <text x="890" y="598" text-anchor="middle" class="relation-text">归属</text>
 
-  <polygon points="1050,162 1110,102 1170,162 1110,222" class="relation"/>
-  <text x="1110" y="170" text-anchor="middle" class="relation-text">记录</text>
+  <!-- 记录关系 -->
+  <polygon points="1140,170 1200,110 1260,170 1200,230" class="relation"/>
+  <text x="1200" y="178" text-anchor="middle" class="relation-text">记录</text>
 
-  <polygon points="1050,342 1110,282 1170,342 1110,402" class="relation"/>
-  <text x="1110" y="350" text-anchor="middle" class="relation-text">布置</text>
+  <polygon points="1140,330 1200,270 1260,330 1200,390" class="relation"/>
+  <text x="1200" y="338" text-anchor="middle" class="relation-text">提交</text>
 
-  <polygon points="1060,690 1120,630 1180,690 1120,750" class="relation"/>
-  <text x="1120" y="698" text-anchor="middle" class="relation-text">完成</text>
+  <polygon points="1140,520 1200,460 1260,520 1200,580" class="relation"/>
+  <text x="1200" y="528" text-anchor="middle" class="relation-text">完成</text>
 
-  <polygon points="1060,840 1120,780 1180,840 1120,900" class="relation"/>
-  <text x="1120" y="848" text-anchor="middle" class="relation-text">参与</text>
+  <polygon points="1140,700 1200,640 1260,700 1200,760" class="relation"/>
+  <text x="1200" y="708" text-anchor="middle" class="relation-text">参与</text>
 
-  <polygon points="920,980 980,920 1040,980 980,1040" class="relation"/>
-  <text x="980" y="988" text-anchor="middle" class="relation-text">触发</text>
+  <polygon points="1140,900 1200,840 1260,900 1200,960" class="relation"/>
+  <text x="1200" y="908" text-anchor="middle" class="relation-text">触发</text>
 
   <!-- 用户-课程 -->
-  <line x1="300" y1="266" x2="320" y2="266" class="line"/>
-  <line x1="440" y1="266" x2="460" y2="266" class="line"/>
-  <text x="306" y="255" class="card">1</text>
-  <text x="444" y="255" class="card">n</text>
+  <line x1="330" y1="291" x2="335" y2="281" class="line"/>
+  <line x1="405" y1="281" x2="410" y2="266" class="line"/>
+  <text x="336" y="281" class="card">1</text>
+  <text x="398" y="271" class="card">n</text>
 
   <!-- 课程-班级 -->
-  <line x1="660" y1="266" x2="700" y2="266" class="line"/>
-  <line x1="820" y1="266" x2="840" y2="266" class="line"/>
-  <text x="672" y="255" class="card">1</text>
-  <text x="828" y="255" class="card">n</text>
+  <line x1="610" y1="271" x2="650" y2="266" class="line"/>
+  <line x1="760" y1="266" x2="800" y2="266" class="line"/>
+  <text x="622" y="259" class="card">1</text>
+  <text x="772" y="254" class="card">n</text>
 
-  <!-- 班级-学生，改为纵向，避免交叉 -->
-  <line x1="930" y1="312" x2="930" y2="480" class="line"/>
-  <line x1="930" y1="600" x2="930" y2="650" class="line"/>
-  <text x="942" y="392" class="card">1</text>
-  <text x="942" y="636" class="card">n</text>
+  <!-- 班级-学生 -->
+  <line x1="890" y1="312" x2="890" y2="530" class="line"/>
+  <line x1="890" y1="650" x2="890" y2="730" class="line"/>
+  <text x="902" y="438" class="card">1</text>
+  <text x="902" y="710" class="card">n</text>
 
-  <!-- 班级-考勤 -->
-  <line x1="1020" y1="250" x2="1050" y2="162" class="line"/>
-  <line x1="1170" y1="162" x2="1230" y2="162" class="line"/>
-  <text x="1038" y="212" class="card">1</text>
-  <text x="1205" y="150" class="card">n</text>
+  <!-- 课程维度主线 -->
+  <polyline points="610,248 660,248 660,180 1050,180" class="line"/>
+  <line x1="1050" y1="110" x2="1050" y2="840" class="line"/>
 
-  <!-- 班级-作业 -->
-  <line x1="1020" y1="284" x2="1050" y2="342" class="line"/>
-  <line x1="1170" y1="342" x2="1230" y2="342" class="line"/>
-  <text x="1036" y="300" class="card">1</text>
-  <text x="1205" y="330" class="card">n</text>
+  <!-- 学生维度主线 -->
+  <line x1="980" y1="776" x2="1000" y2="776" class="line"/>
+  <line x1="1000" y1="170" x2="1000" y2="900" class="line"/>
 
-  <!-- 学生-测验 -->
-  <line x1="980" y1="696" x2="1060" y2="696" class="line"/>
-  <line x1="1180" y1="690" x2="1230" y2="690" class="line"/>
-  <text x="1012" y="684" class="card">1</text>
-  <text x="1208" y="678" class="card">n</text>
+  <!-- 考勤记录 -->
+  <line x1="1050" y1="110" x2="1200" y2="110" class="line"/>
+  <line x1="1000" y1="170" x2="1140" y2="170" class="line"/>
+  <line x1="1260" y1="170" x2="1300" y2="170" class="line"/>
+  <text x="1062" y="100" class="card">1</text>
+  <text x="1012" y="160" class="card">1</text>
+  <text x="1272" y="158" class="card">n</text>
 
-  <!-- 学生-互动 -->
-  <line x1="980" y1="716" x2="1060" y2="840" class="line"/>
-  <line x1="1180" y1="840" x2="1230" y2="840" class="line"/>
-  <text x="1018" y="780" class="card">1</text>
-  <text x="1208" y="828" class="card">n</text>
+  <!-- 作业记录 -->
+  <line x1="1050" y1="270" x2="1200" y2="270" class="line"/>
+  <line x1="1000" y1="330" x2="1140" y2="330" class="line"/>
+  <line x1="1260" y1="330" x2="1300" y2="330" class="line"/>
+  <text x="1062" y="260" class="card">1</text>
+  <text x="1012" y="320" class="card">1</text>
+  <text x="1272" y="318" class="card">n</text>
 
-  <!-- 学生-预警 -->
-  <line x1="900" y1="742" x2="920" y2="980" class="line"/>
-  <line x1="1040" y1="980" x2="1110" y2="980" class="line"/>
-  <text x="910" y="860" class="card">1</text>
-  <text x="1090" y="968" class="card">n</text>
+  <!-- 测验记录 -->
+  <line x1="1050" y1="460" x2="1200" y2="460" class="line"/>
+  <line x1="1000" y1="520" x2="1140" y2="520" class="line"/>
+  <line x1="1260" y1="520" x2="1300" y2="520" class="line"/>
+  <text x="1062" y="450" class="card">1</text>
+  <text x="1012" y="510" class="card">1</text>
+  <text x="1272" y="508" class="card">n</text>
+
+  <!-- 互动记录 -->
+  <line x1="1050" y1="640" x2="1200" y2="640" class="line"/>
+  <line x1="1000" y1="700" x2="1140" y2="700" class="line"/>
+  <line x1="1260" y1="700" x2="1300" y2="700" class="line"/>
+  <text x="1062" y="630" class="card">1</text>
+  <text x="1012" y="690" class="card">1</text>
+  <text x="1272" y="688" class="card">n</text>
+
+  <!-- 预警记录 -->
+  <line x1="1050" y1="840" x2="1200" y2="840" class="line"/>
+  <line x1="1000" y1="900" x2="1140" y2="900" class="line"/>
+  <line x1="1260" y1="900" x2="1300" y2="900" class="line"/>
+  <text x="1062" y="830" class="card">1</text>
+  <text x="1012" y="890" class="card">1</text>
+  <text x="1272" y="888" class="card">n</text>
 </svg>
