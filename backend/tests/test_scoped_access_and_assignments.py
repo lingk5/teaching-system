@@ -28,118 +28,162 @@ class ScopedAccessAndAssignmentTests(unittest.TestCase):
         cls.app.config["TESTING"] = True
         cls.client = cls.app.test_client()
 
-        with cls.app.app_context():
-            db.create_all()
+    def setUp(self):
+        self.ctx = self.app.app_context()
+        self.ctx.push()
+        db.session.rollback()
+        AssistantCourseAssignment.query.delete()
+        Warning.query.delete()
+        Student.query.delete()
+        Class.query.delete()
+        Course.query.delete()
+        User.query.filter(
+            User.username.in_(["teacher_other", "assistant_two"])
+        ).delete(synchronize_session=False)
+        db.session.commit()
 
-            admin = User.query.filter_by(username="admin").first()
-            teacher = User.query.filter_by(username="teacher").first()
-            assistant = User.query.filter_by(username="assistant").first()
+        admin = User.query.filter_by(username="admin").first()
+        teacher = User.query.filter_by(username="teacher").first()
+        assistant = User.query.filter_by(username="assistant").first()
 
-            other_teacher = User.query.filter_by(username="teacher_other").first()
-            if other_teacher is None:
-                from werkzeug.security import generate_password_hash
+        if admin is None or teacher is None or assistant is None:
+            from werkzeug.security import generate_password_hash
 
-                other_teacher = User(
-                    username="teacher_other",
+            if admin is None:
+                admin = User(
+                    username="admin",
                     password_hash=generate_password_hash("123456"),
-                    name="其他教师",
+                    name="系统管理员",
+                    role="admin",
+                )
+                db.session.add(admin)
+            if teacher is None:
+                teacher = User(
+                    username="teacher",
+                    password_hash=generate_password_hash("123456"),
+                    name="演示教师",
                     role="teacher",
                 )
-                db.session.add(other_teacher)
-
-            second_assistant = User.query.filter_by(username="assistant_two").first()
-            if second_assistant is None:
-                from werkzeug.security import generate_password_hash
-
-                second_assistant = User(
-                    username="assistant_two",
+                db.session.add(teacher)
+            if assistant is None:
+                assistant = User(
+                    username="assistant",
                     password_hash=generate_password_hash("123456"),
-                    name="第二助教",
+                    name="演示助教",
                     role="assistant",
                 )
-                db.session.add(second_assistant)
-
+                db.session.add(assistant)
             db.session.flush()
 
-            owned_course = Course(
-                name="教师自有课程",
-                code="SCOPE-OWN-101",
-                semester="2026-2027-1",
-                teacher_id=teacher.id,
-            )
-            foreign_course = Course(
-                name="其他教师课程",
-                code="SCOPE-FOREIGN-201",
-                semester="2026-2027-1",
-                teacher_id=other_teacher.id,
-            )
-            db.session.add_all([owned_course, foreign_course])
-            db.session.flush()
+        other_teacher = User.query.filter_by(username="teacher_other").first()
+        if other_teacher is None:
+            from werkzeug.security import generate_password_hash
 
-            owned_class = Class(name="自有班级", course_id=owned_course.id)
-            foreign_class = Class(name="外部班级", course_id=foreign_course.id)
-            db.session.add_all([owned_class, foreign_class])
-            db.session.flush()
+            other_teacher = User(
+                username="teacher_other",
+                password_hash=generate_password_hash("123456"),
+                name="其他教师",
+                role="teacher",
+            )
+            db.session.add(other_teacher)
 
-            owned_student = Student(
-                student_no="SCOPE-STU-001",
-                name="自有学生",
-                gender="男",
-                class_id=owned_class.id,
-            )
-            foreign_student = Student(
-                student_no="SCOPE-STU-002",
-                name="外部学生",
-                gender="女",
-                class_id=foreign_class.id,
-            )
-            db.session.add_all([owned_student, foreign_student])
-            db.session.flush()
+        second_assistant = User.query.filter_by(username="assistant_two").first()
+        if second_assistant is None:
+            from werkzeug.security import generate_password_hash
 
-            owned_warning = Warning(
-                student_id=owned_student.id,
-                course_id=owned_course.id,
-                type="comprehensive",
-                level="yellow",
-                reason="自有课程预警",
-                suggestion="继续观察",
-                metrics={"comprehensive_score": 74.0},
-                status="active",
+            second_assistant = User(
+                username="assistant_two",
+                password_hash=generate_password_hash("123456"),
+                name="第二助教",
+                role="assistant",
             )
-            foreign_warning = Warning(
-                student_id=foreign_student.id,
-                course_id=foreign_course.id,
-                type="comprehensive",
-                level="red",
-                reason="外部课程预警",
-                suggestion="立即干预",
-                metrics={"comprehensive_score": 40.0},
-                status="active",
-            )
-            db.session.add_all([owned_warning, foreign_warning])
-            db.session.flush()
+            db.session.add(second_assistant)
 
-            assignment = AssistantCourseAssignment(
-                assistant_id=assistant.id,
-                course_id=owned_course.id,
-                assigned_by=teacher.id,
-            )
-            db.session.add(assignment)
-            db.session.commit()
+        db.session.flush()
 
-            cls.admin_id = admin.id
-            cls.teacher_id = teacher.id
-            cls.assistant_id = assistant.id
-            cls.other_teacher_id = other_teacher.id
-            cls.second_assistant_id = second_assistant.id
-            cls.owned_course_id = owned_course.id
-            cls.foreign_course_id = foreign_course.id
-            cls.owned_class_id = owned_class.id
-            cls.foreign_class_id = foreign_class.id
-            cls.owned_student_id = owned_student.id
-            cls.foreign_student_id = foreign_student.id
-            cls.owned_warning_id = owned_warning.id
-            cls.foreign_warning_id = foreign_warning.id
+        owned_course = Course(
+            name="教师自有课程",
+            code="SCOPE-OWN-101",
+            semester="2026-2027-1",
+            teacher_id=teacher.id,
+        )
+        foreign_course = Course(
+            name="其他教师课程",
+            code="SCOPE-FOREIGN-201",
+            semester="2026-2027-1",
+            teacher_id=other_teacher.id,
+        )
+        db.session.add_all([owned_course, foreign_course])
+        db.session.flush()
+
+        owned_class = Class(name="自有班级", course_id=owned_course.id)
+        foreign_class = Class(name="外部班级", course_id=foreign_course.id)
+        db.session.add_all([owned_class, foreign_class])
+        db.session.flush()
+
+        owned_student = Student(
+            student_no="SCOPE-STU-001",
+            name="自有学生",
+            gender="男",
+            class_id=owned_class.id,
+        )
+        foreign_student = Student(
+            student_no="SCOPE-STU-002",
+            name="外部学生",
+            gender="女",
+            class_id=foreign_class.id,
+        )
+        db.session.add_all([owned_student, foreign_student])
+        db.session.flush()
+
+        owned_warning = Warning(
+            student_id=owned_student.id,
+            course_id=owned_course.id,
+            type="comprehensive",
+            level="yellow",
+            reason="自有课程预警",
+            suggestion="继续观察",
+            metrics={"comprehensive_score": 74.0},
+            status="active",
+        )
+        foreign_warning = Warning(
+            student_id=foreign_student.id,
+            course_id=foreign_course.id,
+            type="comprehensive",
+            level="red",
+            reason="外部课程预警",
+            suggestion="立即干预",
+            metrics={"comprehensive_score": 40.0},
+            status="active",
+        )
+        db.session.add_all([owned_warning, foreign_warning])
+        db.session.flush()
+
+        assignment = AssistantCourseAssignment(
+            assistant_id=assistant.id,
+            course_id=owned_course.id,
+            assigned_by=teacher.id,
+        )
+        db.session.add(assignment)
+        db.session.commit()
+
+        self.admin_id = admin.id
+        self.teacher_id = teacher.id
+        self.assistant_id = assistant.id
+        self.other_teacher_id = other_teacher.id
+        self.second_assistant_id = second_assistant.id
+        self.owned_course_id = owned_course.id
+        self.foreign_course_id = foreign_course.id
+        self.owned_class_id = owned_class.id
+        self.foreign_class_id = foreign_class.id
+        self.owned_student_id = owned_student.id
+        self.foreign_student_id = foreign_student.id
+        self.owned_warning_id = owned_warning.id
+        self.foreign_warning_id = foreign_warning.id
+
+    def tearDown(self):
+        db.session.remove()
+        self.ctx.pop()
 
     @classmethod
     def tearDownClass(cls):
@@ -286,6 +330,31 @@ class ScopedAccessAndAssignmentTests(unittest.TestCase):
         assistant_ids = {
             item["assistant_id"]
             for item in list_response.get_json()["data"]
+        }
+        self.assertIn(self.assistant_id, assistant_ids)
+        self.assertIn(self.second_assistant_id, assistant_ids)
+
+    def test_teacher_and_admin_can_list_assignable_assistants(self):
+        teacher_response = self.client.get(
+            "/api/courses/assistant-options",
+            headers=self.auth_headers("teacher"),
+        )
+        admin_response = self.client.get(
+            "/api/courses/assistant-options",
+            headers=self.auth_headers("admin"),
+        )
+        assistant_response = self.client.get(
+            "/api/courses/assistant-options",
+            headers=self.auth_headers("assistant"),
+        )
+
+        self.assertEqual(teacher_response.status_code, 200)
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertEqual(assistant_response.status_code, 403)
+
+        assistant_ids = {
+            item["id"]
+            for item in teacher_response.get_json()["data"]
         }
         self.assertIn(self.assistant_id, assistant_ids)
         self.assertIn(self.second_assistant_id, assistant_ids)

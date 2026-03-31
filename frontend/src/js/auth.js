@@ -13,8 +13,8 @@ const ROLE_ALLOWED_PAGES = {
 };
 
 const ROLE_CAPABILITIES = {
-    admin: new Set(['manage_users', 'manage_courses', 'manage_students', 'import_data', 'process_warnings', 'generate_warnings']),
-    teacher: new Set(['manage_courses', 'manage_students', 'import_data', 'process_warnings', 'generate_warnings']),
+    admin: new Set(['manage_users', 'manage_courses', 'manage_students', 'import_data', 'process_warnings', 'generate_warnings', 'export_reports']),
+    teacher: new Set(['manage_courses', 'manage_students', 'import_data', 'process_warnings', 'generate_warnings', 'export_reports']),
     assistant: new Set([])
 };
 

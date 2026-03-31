@@ -4,7 +4,7 @@
 格式：Excel (.xlsx) 带样式美化
 """
 from flask import Blueprint, request, jsonify, send_file, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from sqlalchemy import func, and_, or_, case
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -18,6 +18,7 @@ from ..models import db, Student, Course, Class
 from ..models.data import Attendance, Homework, Quiz, Interaction
 from ..models.warning import Warning
 from ..services.weight_config import WeightConfig
+from ..utils.permissions import current_user_can, accessible_course_ids, can_access_course
 
 export_bp = Blueprint('export', __name__)
 
@@ -63,19 +64,17 @@ def export_students():
     导出学生名单
     """
     try:
-        teacher_id = get_jwt_identity()
-        # 兼容处理 teacher_id
-        if isinstance(teacher_id, dict):
-             teacher_id = teacher_id.get('id')
-        elif isinstance(teacher_id, str) and not teacher_id.isdigit():
-             # 如果是用户名，查库
-             from ..models import User
-             user = User.query.filter_by(username=teacher_id).first()
-             teacher_id = user.id if user else None
+        if not current_user_can('export_reports'):
+            return jsonify({'success': False, 'message': '助教无权限导出报表'}), 403
+
+        allowed_course_ids = accessible_course_ids()
 
         course_id = request.args.get('course_id', type=int)
         class_id = request.args.get('class_id', type=int)
         format_type = request.args.get('format', 'xlsx')
+
+        if course_id and not can_access_course(course_id):
+            return jsonify({'success': False, 'message': '无权导出该课程数据'}), 403
 
         # 构建查询
         query = db.session.query(
@@ -97,12 +96,10 @@ def export_students():
                 return jsonify({'success': False, 'message': '课程不存在'}), 404
             filename_suffix = f"_{course.name}"
         else:
-            # 导出该教师所有课程的学生
             query = query.join(
                 Course, Class.course_id == Course.id
             )
-            if teacher_id:
-                query = query.filter(Course.teacher_id == teacher_id)
+            query = query.filter(Course.id.in_(allowed_course_ids))
             filename_suffix = "_全部"
 
         if class_id:
@@ -168,18 +165,18 @@ def export_scores():
     导出成绩报表
     """
     try:
-        teacher_id = get_jwt_identity()
-        if isinstance(teacher_id, dict):
-             teacher_id = teacher_id.get('id')
-        elif isinstance(teacher_id, str) and not teacher_id.isdigit():
-             from ..models import User
-             user = User.query.filter_by(username=teacher_id).first()
-             teacher_id = user.id if user else None
+        if not current_user_can('export_reports'):
+            return jsonify({'success': False, 'message': '助教无权限导出报表'}), 403
+
+        allowed_course_ids = accessible_course_ids()
 
         course_id = request.args.get('course_id', type=int)
         class_id = request.args.get('class_id', type=int)
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
+
+        if course_id and not can_access_course(course_id):
+            return jsonify({'success': False, 'message': '无权导出该课程数据'}), 403
 
         # 1. 计算考勤平均分 (Attendance表没有score字段，需要计算)
         # 规则: present=100, late=80, leave=60, absent=0
@@ -196,6 +193,7 @@ def export_scores():
             Student.id.label('student_id'),
             Student.student_no,
             Student.name,
+            Course.id.label('course_id'),
             Course.name.label('course_name'),
             Class.name.label('class_name'),
             func.avg(attendance_score_case).label('attendance_avg'),
@@ -213,8 +211,7 @@ def export_scores():
             Quiz, and_(Quiz.student_id == Student.id, Quiz.course_id == Course.id)
         )
 
-        if teacher_id:
-            query = query.filter(Course.teacher_id == teacher_id)
+        query = query.filter(Course.id.in_(allowed_course_ids))
 
         if course_id:
             query = query.filter(Course.id == course_id)
@@ -241,8 +238,11 @@ def export_scores():
             attendance  = float(row.attendance_avg) if row.attendance_avg is not None else 0.0
             homework    = float(row.homework_avg)   if row.homework_avg   is not None else 0.0
             quiz        = float(row.quiz_avg)       if row.quiz_avg       is not None else 0.0
-            # 互动分：导出查询暂未聚合互动数据，无数据时默认满分（与预警引擎逻辑一致）
-            interaction = 100.0
+            interaction_total = db.session.query(func.sum(Interaction.count)).filter(
+                Interaction.student_id == row.student_id,
+                Interaction.course_id == row.course_id
+            ).scalar()
+            interaction = min(interaction_total * 10, 100) if interaction_total is not None else None
 
             metrics = {
                 'attendance':  attendance,
@@ -250,7 +250,8 @@ def export_scores():
                 'quiz':        quiz,
                 'interaction': interaction,
             }
-            composite = WeightConfig.calculate_comprehensive_score(metrics)
+            score_details = WeightConfig.calculate_score_details(metrics)
+            composite = score_details['comprehensive_score']
 
             # 评定等级
             if composite >= 90:
@@ -331,13 +332,10 @@ def export_attendance():
     导出考勤统计
     """
     try:
-        teacher_id = get_jwt_identity()
-        if isinstance(teacher_id, dict):
-             teacher_id = teacher_id.get('id')
-        elif isinstance(teacher_id, str) and not teacher_id.isdigit():
-             from ..models import User
-             user = User.query.filter_by(username=teacher_id).first()
-             teacher_id = user.id if user else None
+        if not current_user_can('export_reports'):
+            return jsonify({'success': False, 'message': '助教无权限导出报表'}), 403
+
+        allowed_course_ids = accessible_course_ids()
 
         course_id = request.args.get('course_id', type=int)
 
@@ -365,8 +363,7 @@ def export_attendance():
             Attendance.date.between(start_date, end_date)
         )
         
-        if teacher_id:
-             query = query.filter(Course.teacher_id == teacher_id)
+        query = query.filter(Course.id.in_(allowed_course_ids))
 
         if course_id:
             query = query.filter(Attendance.course_id == course_id)
@@ -452,18 +449,19 @@ def export_warnings():
     导出预警报告
     """
     try:
-        teacher_id = get_jwt_identity()
-        if isinstance(teacher_id, dict):
-             teacher_id = teacher_id.get('id')
-        elif isinstance(teacher_id, str) and not teacher_id.isdigit():
-             from ..models import User
-             user = User.query.filter_by(username=teacher_id).first()
-             teacher_id = user.id if user else None
+        if not current_user_can('export_reports'):
+            return jsonify({'success': False, 'message': '助教无权限导出报表'}), 403
+
+        allowed_course_ids = accessible_course_ids()
 
         level = request.args.get('level')
         status = request.args.get('status')
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
+        course_id = request.args.get('course_id', type=int)
+
+        if course_id and not can_access_course(course_id):
+            return jsonify({'success': False, 'message': '无权导出该课程数据'}), 403
 
         # 构建查询
         query = db.session.query(
@@ -477,8 +475,9 @@ def export_warnings():
             Course, Warning.course_id == Course.id
         )
         
-        if teacher_id:
-            query = query.filter(Course.teacher_id == teacher_id)
+        query = query.filter(Course.id.in_(allowed_course_ids))
+        if course_id:
+            query = query.filter(Course.id == course_id)
 
         if level:
             query = query.filter(Warning.level == level)
@@ -642,3 +641,5 @@ def download_template(type):
 
     except Exception as e:
         return jsonify({'success': False, 'message': f'生成模板失败: {str(e)}'}), 500
+        if course_id and not can_access_course(course_id):
+            return jsonify({'success': False, 'message': '无权导出该课程数据'}), 403

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, send_from_directory
-from flask_jwt_extended import jwt_required, get_jwt
+from flask_jwt_extended import jwt_required
 from ..models import db
 from ..models.data import Attendance, Homework, Quiz, Interaction
 from ..models.course import Student, Class, Course
@@ -7,7 +7,7 @@ from ..utils.import_helpers import (
     ImportHelper, StudentImporter, AttendanceImporter, 
     HomeworkImporter, QuizImporter, InteractionImporter
 )
-from ..utils.permissions import current_user_can
+from ..utils.permissions import current_user_can, can_access_course, current_role, current_user_id
 import pandas as pd
 import os
 
@@ -25,6 +25,8 @@ def add_attendance():
         return jsonify({'success': False, 'message': '助教无权限写入数据'}), 403
 
     data = request.get_json()
+    if not can_access_course(data.get('course_id')):
+        return jsonify({'success': False, 'message': '无权写入该课程数据'}), 403
 
     record = Attendance(
         student_id=data['student_id'],
@@ -47,6 +49,8 @@ def add_homework():
         return jsonify({'success': False, 'message': '助教无权限写入数据'}), 403
 
     data = request.get_json()
+    if not can_access_course(data.get('course_id')):
+        return jsonify({'success': False, 'message': '无权写入该课程数据'}), 403
 
     record = Homework(
         student_id=data['student_id'],
@@ -70,6 +74,8 @@ def add_quiz():
         return jsonify({'success': False, 'message': '助教无权限写入数据'}), 403
 
     data = request.get_json()
+    if not can_access_course(data.get('course_id')):
+        return jsonify({'success': False, 'message': '无权写入该课程数据'}), 403
 
     record = Quiz(
         student_id=data['student_id'],
@@ -93,6 +99,8 @@ def add_interaction():
         return jsonify({'success': False, 'message': '助教无权限写入数据'}), 403
 
     data = request.get_json()
+    if not can_access_course(data.get('course_id')):
+        return jsonify({'success': False, 'message': '无权写入该课程数据'}), 403
 
     record = Interaction(
         student_id=data['student_id'],
@@ -130,6 +138,8 @@ def import_data(data_type):
 
     if not course_id:
         return jsonify({'success': False, 'message': '缺少course_id参数'}), 400
+    if not can_access_course(course_id):
+        return jsonify({'success': False, 'message': '无权导入该课程数据'}), 403
 
     # 检查文件类型
     allowed_extensions = {'.csv', '.xlsx', '.xls'}
@@ -293,6 +303,8 @@ def import_scores_api():
 
     if not course_id:
         return jsonify({'success': False, 'message': '缺少course_id参数'}), 400
+    if not can_access_course(course_id):
+        return jsonify({'success': False, 'message': '无权导入该课程数据'}), 403
 
     # 检查文件类型
     allowed_extensions = {'.csv', '.xlsx', '.xls'}
@@ -350,9 +362,13 @@ def import_courses_api():
 
     file = request.files['file']
     teacher_id = request.form.get('teacher_id', type=int)
+    role = current_role()
 
     if not file or file.filename == '':
         return jsonify({'success': False, 'message': '文件名为空'}), 400
+
+    if role == 'teacher':
+        teacher_id = current_user_id()
 
     if not teacher_id:
         return jsonify({'success': False, 'message': '缺少teacher_id参数'}), 400

@@ -1,11 +1,16 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from sqlalchemy import func, case
-from datetime import datetime, timedelta
 from ..models import db, Student, Class
 from ..models.data import Attendance, Homework, Quiz, Interaction
-from ..models.warning import Warning
 from ..services.warning_engine import WarningEngine
+from ..services.weight_config import WeightConfig
+from ..utils.permissions import (
+    can_access_course,
+    can_access_class,
+    can_access_student,
+    course_id_for_student,
+)
 
 analytics_bp = Blueprint('analytics', __name__)
 
@@ -13,8 +18,20 @@ analytics_bp = Blueprint('analytics', __name__)
 @jwt_required()
 def course_overview(course_id):
     """课程概览数据"""
+    if not can_access_course(course_id):
+        return jsonify({'success': False, 'message': '无权访问该课程'}), 403
+    class_id = request.args.get('class_id', type=int)
+    if class_id:
+        if not can_access_class(class_id):
+            return jsonify({'success': False, 'message': '无权访问该班级'}), 403
+        target_class = Class.query.filter_by(id=class_id, course_id=course_id).first()
+        if not target_class:
+            return jsonify({'success': False, 'message': '班级不属于该课程'}), 403
+        classes = [target_class]
+    else:
+        classes = Class.query.filter_by(course_id=course_id).all()
+
     # 1. 基础统计
-    classes = Class.query.filter_by(course_id=course_id).all()
     class_ids = [c.id for c in classes]
     students = Student.query.filter(Student.class_id.in_(class_ids)).all()
     student_ids = [s.id for s in students]
@@ -28,7 +45,7 @@ def course_overview(course_id):
                 'homework_completion': 0,
                 'avg_quiz_score': 0,
                 'score_distribution': [0, 0, 0, 0, 0],
-                'class_profile': [0, 0, 0, 0, 0],
+                'class_profile': [],
                 'trend': {'labels': [], 'class_avg': [], 'grade_avg': []},
                 'student_ranking': []
             }
@@ -47,46 +64,40 @@ def course_overview(course_id):
     # 计算平均测验分
     avg_quiz_score = db.session.query(func.avg(Quiz.score)).filter(Quiz.student_id.in_(student_ids), Quiz.course_id == course_id).scalar() or 0
 
-    # 2. 成绩分布 (优秀90+, 良好80-89, 中等70-79, 及格60-69, 不及格<60)
-    # 这里以综合预警分数为准，或者以最近一次测验为准。为了简化展示，这里统计所有测验的平均分分布
-    score_case = case(
-        (Quiz.score >= 90, 'excellent'),
-        (Quiz.score >= 80, 'good'),
-        (Quiz.score >= 70, 'average'),
-        (Quiz.score >= 60, 'pass'),
-        else_='fail'
-    )
-    distribution_query = db.session.query(score_case, func.count(Quiz.id)).filter(
-        Quiz.student_id.in_(student_ids), Quiz.course_id == course_id
-    ).group_by(score_case).all()
-    
-    dist_map = {k: v for k, v in distribution_query}
-    score_distribution = [
-        dist_map.get('excellent', 0),
-        dist_map.get('good', 0),
-        dist_map.get('average', 0),
-        dist_map.get('pass', 0),
-        dist_map.get('fail', 0)
-    ]
+    engine = WarningEngine(course_id)
+    student_rows = []
+    for student in students:
+        metrics = engine._calculate_metrics(student.id)
+        score_details = WeightConfig.calculate_score_details(metrics)
+        student_rows.append({
+            'student': student,
+            'metrics': metrics,
+            'score_details': score_details,
+        })
 
-    # 3. 班级能力画像 (出勤, 作业, 互动, 测验, 预习-暂无)
-    class_profile = [
-        round(attendance_rate, 1),
-        round(homework_completion, 1),
-        min(
-            (
-                (db.session.query(func.avg(Interaction.count))
-                .filter(
-                    Interaction.student_id.in_(student_ids),
-                    Interaction.course_id == course_id
-                )
-                .scalar() or 0) * 10
-            ),
-            100
-        ),
-        round(float(avg_quiz_score), 1),
-        70 # 预习暂定
-    ]
+    score_distribution = [0, 0, 0, 0, 0]
+    for row in student_rows:
+        score = row['score_details']['comprehensive_score']
+        if score >= 90:
+            score_distribution[0] += 1
+        elif score >= 80:
+            score_distribution[1] += 1
+        elif score >= 70:
+            score_distribution[2] += 1
+        elif score >= 60:
+            score_distribution[3] += 1
+        else:
+            score_distribution[4] += 1
+
+    class_profile = []
+    for key in ('attendance', 'homework', 'quiz', 'interaction'):
+        values = [
+            row['metrics'][key]
+            for row in student_rows
+            if row['metrics'][key] is not None
+        ]
+        if values:
+            class_profile.append(round(sum(values) / len(values), 1))
 
     # 4. 学习趋势 (最近5次测验的平均分)
     recent_quizzes = db.session.query(
@@ -98,19 +109,19 @@ def course_overview(course_id):
     trend_labels = [q[0] for q in recent_quizzes]
     trend_data = [round(q[1], 1) for q in recent_quizzes]
 
-    # 5. 学生排行 (前10名，按测验平均分)
-    top_students = db.session.query(
-        Student.id, Student.student_no, Student.name, func.avg(Quiz.score).label('avg_score')
-    ).join(Quiz).filter(
-        Quiz.course_id == course_id, Student.id.in_(student_ids)
-    ).group_by(Student.id).order_by(func.avg(Quiz.score).desc()).limit(10).all()
-
+    ranking_rows = sorted(
+        student_rows,
+        key=lambda row: row['score_details']['comprehensive_score'],
+        reverse=True,
+    )[:10]
     student_ranking = [{
-        'id': s.id,
-        'student_no': s.student_no,
-        'name': s.name,
-        'score': round(s.avg_score, 1)
-    } for s in top_students]
+        'id': row['student'].id,
+        'student_no': row['student'].student_no,
+        'name': row['student'].name,
+        'score': round(row['score_details']['comprehensive_score'], 1),
+        'class_name': row['student'].class_.name if row['student'].class_ else '',
+        'coverage': row['score_details']['coverage'],
+    } for row in ranking_rows]
 
     return jsonify({
         'success': True,
@@ -124,7 +135,7 @@ def course_overview(course_id):
             'trend': {
                 'labels': trend_labels,
                 'class_avg': trend_data,
-                'grade_avg': [d * 0.95 for d in trend_data] # 模拟年级平均
+                'grade_avg': []
             },
             'student_ranking': student_ranking
         }
@@ -134,12 +145,17 @@ def course_overview(course_id):
 @jwt_required()
 def student_profile(course_id, student_id):
     """学生个人学习档案"""
+    if not can_access_course(course_id) or not can_access_student(student_id):
+        return jsonify({'success': False, 'message': '无权访问该学生档案'}), 403
+    if course_id_for_student(student_id) != course_id:
+        return jsonify({'success': False, 'message': '学生不属于该课程'}), 403
+
     student = Student.query.get_or_404(student_id)
     
     # 重新使用 WarningEngine 计算该生的实时指标
     engine = WarningEngine(course_id)
     metrics = engine._calculate_metrics(student.id)
-    score = engine._calculate_comprehensive_score(metrics)
+    score_details = WeightConfig.calculate_score_details(metrics)
 
     # 趋势数据
     quizzes = Quiz.query.filter_by(student_id=student.id, course_id=course_id).order_by(Quiz.created_at).limit(10).all()
@@ -153,12 +169,15 @@ def student_profile(course_id, student_id):
                 'name': student.name,
                 'student_no': student.student_no,
                 'class_name': student.class_.name if student.class_ else '',
-                'score': round(score, 1)
+                'score': round(score_details['comprehensive_score'], 1)
             },
-            'attendance': {'rate': round(metrics['attendance'], 1)},
-            'homework': {'avg_score': round(metrics['homework'], 1)},
-            'quiz': {'avg_score': round(metrics['quiz'], 1)},
-            'interaction': {'total': round(metrics['interaction'], 1)},
+            'metrics': {
+                'attendance': round(metrics['attendance'], 1) if metrics['attendance'] is not None else None,
+                'homework': round(metrics['homework'], 1) if metrics['homework'] is not None else None,
+                'quiz': round(metrics['quiz'], 1) if metrics['quiz'] is not None else None,
+                'interaction': round(metrics['interaction'], 1) if metrics['interaction'] is not None else None,
+            },
+            'coverage': score_details['coverage'],
             'trend': {
                 'labels': trend_labels,
                 'scores': trend_scores

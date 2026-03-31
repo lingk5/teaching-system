@@ -741,6 +741,16 @@
                 const res = await request.get(`/analytics/course/${courseId}/students/${studentId}/profile`);
                 const data = res.data;
                 const s = data.student;
+                const metrics = data.metrics || {};
+                const coverage = data.coverage || {};
+                const metricValue = (value, suffix = '') => value == null ? '暂无' : `${value}${suffix}`;
+                const radarMetrics = [
+                    metrics.attendance ?? 0,
+                    metrics.homework ?? 0,
+                    metrics.quiz ?? 0,
+                    metrics.interaction ?? 0,
+                    s.score ?? 0
+                ];
 
                 const modalBody = document.getElementById('detailModalBody');
                 modalBody.innerHTML = `
@@ -757,21 +767,28 @@
 
                     <div class="metric-cards">
                         <div class="metric-card">
-                            <div class="metric-val text-success">${data.attendance.rate}%</div>
+                            <div class="metric-val text-success">${metricValue(metrics.attendance, '%')}</div>
                             <div class="metric-lbl">出勤率</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-val text-primary">${data.homework.avg_score}</div>
-                            <div class="metric-lbl">作业均分</div>
+                            <div class="metric-val text-primary">${metricValue(metrics.homework)}</div>
+                            <div class="metric-lbl">作业得分</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-val text-warning">${data.quiz.avg_score}</div>
-                            <div class="metric-lbl">测验均分</div>
+                            <div class="metric-val text-warning">${metricValue(metrics.quiz)}</div>
+                            <div class="metric-lbl">测验得分</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-val text-purple" style="color: #8b5cf6;">${data.interaction.total}</div>
-                            <div class="metric-lbl">互动次数</div>
+                            <div class="metric-val text-purple" style="color: #8b5cf6;">${metricValue(metrics.interaction)}</div>
+                            <div class="metric-lbl">互动得分</div>
                         </div>
+                    </div>
+
+                    <div class="alert alert-light border mb-4">
+                        <div class="fw-semibold mb-2">覆盖率</div>
+                        <div class="small text-muted">已覆盖 ${coverage.covered_count ?? 0}/${coverage.total_count ?? 4} 项</div>
+                        <div class="small text-muted mt-1">已覆盖指标：${(coverage.covered_fields || []).join('、') || '无'}</div>
+                        <div class="small text-muted mt-1">缺失指标：${(coverage.missing_fields || []).join('、') || '无'}</div>
                     </div>
 
                     <div class="row">
@@ -795,13 +812,7 @@
                             labels: ['出勤', '作业', '测验', '互动', '综合'],
                             datasets: [{
                                 label: '个人能力',
-                                data: [
-                                    data.attendance.rate,
-                                    data.homework.avg_score,
-                                    data.quiz.avg_score,
-                                    Math.min(data.interaction.total * 10, 100),
-                                    s.score
-                                ],
+                                data: radarMetrics,
                                 backgroundColor: 'rgba(59, 130, 246, 0.2)',
                                 borderColor: '#3b82f6'
                             }]

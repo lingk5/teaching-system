@@ -22,7 +22,7 @@ class Warning(db.Model):
     suggestion = db.Column(db.Text, comment='干预建议')
 
     # 处理状态
-    status = db.Column(db.String(20), default='active', comment='状态：active/processed/ignored')
+    status = db.Column(db.String(20), default='active', comment='状态：active/processed/ignored/following/cleared')
     handled_by = db.Column(db.Integer, db.ForeignKey('users.id'), comment='处理人')
     handled_at = db.Column(db.DateTime, comment='处理时间')
     handle_note = db.Column(db.Text, comment='处理备注')

@@ -45,11 +45,18 @@ class WarningEngine:
     def _generate_warning_for_student(self, student):
         """为单个学生生成综合预警"""
         metrics = self._calculate_metrics(student.id)
-        score = self._calculate_comprehensive_score(metrics)
-        metrics['comprehensive_score'] = round(score, 2)
+        score_details = WeightConfig.calculate_score_details(metrics)
+        score = score_details['comprehensive_score']
+        metrics['comprehensive_score'] = score
+        metrics['coverage'] = score_details['coverage']
+
+        if not score_details['eligible_for_warning']:
+            self._clear_active_warning(student.id, metrics)
+            return None
 
         level = self._determine_warning_level(score)
         if not level:
+            self._clear_active_warning(student.id, metrics)
             return None
 
         reason, suggestion = self._generate_reason_and_suggestion(metrics, score, level)
@@ -80,7 +87,7 @@ class WarningEngine:
             Attendance.course_id == self.course_id,
             Attendance.date.between(start.date(), end.date())
         ).scalar()
-        return float(avg_score) if avg_score is not None else 100.0
+        return float(avg_score) if avg_score is not None else None
 
     def _calculate_homework_score(self, student_id, start, end):
         """作业分：按百分制折算"""
@@ -91,7 +98,7 @@ class WarningEngine:
             Homework.course_id == self.course_id,
             Homework.created_at.between(start, end)
         ).scalar()
-        return float(avg_score) if avg_score is not None else 100.0
+        return float(avg_score) if avg_score is not None else None
 
     def _calculate_quiz_score(self, student_id, start, end):
         """测验分：按百分制折算"""
@@ -102,7 +109,7 @@ class WarningEngine:
             Quiz.course_id == self.course_id,
             Quiz.created_at.between(start, end)
         ).scalar()
-        return float(avg_score) if avg_score is not None else 100.0
+        return float(avg_score) if avg_score is not None else None
 
     def _calculate_interaction_score(self, student_id, start, end):
         """互动分：每次互动+10分，100分封顶"""
@@ -110,7 +117,9 @@ class WarningEngine:
             Interaction.student_id == student_id,
             Interaction.course_id == self.course_id,
             Interaction.date.between(start.date(), end.date())
-        ).scalar() or 0
+        ).scalar()
+        if count is None:
+            return None
         return min(count * 10, 100)
 
     def _calculate_comprehensive_score(self, metrics):
@@ -123,7 +132,7 @@ class WarningEngine:
 
     def _generate_reason_and_suggestion(self, metrics, score, level):
         """生成预警原因和干预建议"""
-        metric_keys = ['attendance', 'homework', 'quiz', 'interaction']
+        metric_keys = metrics.get('coverage', {}).get('covered_fields', [])
         low_items = sorted(
             [(k, metrics[k]) for k in metric_keys],
             key=lambda item: item[1]
@@ -169,12 +178,11 @@ class WarningEngine:
         ).first()
 
         if existing:
-            if existing.level != level or existing.reason != reason:
-                existing.level = level
-                existing.reason = reason
-                existing.suggestion = suggestion
-                existing.metrics = metrics
-                existing.created_at = datetime.now()
+            existing.level = level
+            existing.reason = reason
+            existing.suggestion = suggestion
+            existing.metrics = metrics
+            existing.created_at = datetime.now()
             return None
         else:
             return Warning(
@@ -187,3 +195,15 @@ class WarningEngine:
                 metrics=metrics,
                 status='active'
             )
+
+    def _clear_active_warning(self, student_id, metrics):
+        existing = Warning.query.filter_by(
+            student_id=student_id,
+            course_id=self.course_id,
+            type='comprehensive',
+            status='active'
+        ).first()
+        if existing:
+            existing.status = 'cleared'
+            existing.metrics = metrics
+            existing.created_at = datetime.now()

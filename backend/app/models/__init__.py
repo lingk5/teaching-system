@@ -7,3 +7,4 @@ from .user import User
 from .course import Course, Class, Student
 from .data import Attendance, Homework, Quiz, Interaction
 from .warning import Warning
+from .assistant_assignment import AssistantCourseAssignment

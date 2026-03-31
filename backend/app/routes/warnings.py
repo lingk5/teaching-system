@@ -1,8 +1,7 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..models import db, Warning, Student, Course
-from ..models.data import Attendance, Homework, Quiz
-from ..utils.permissions import current_user_can
+from ..utils.permissions import current_user_can, can_access_course, can_access_class, accessible_course_ids
 from datetime import datetime
 
 warnings_bp = Blueprint('warnings', __name__)
@@ -21,11 +20,15 @@ def get_warnings():
         search = request.args.get('search', '')
         course_id = request.args.get('course_id', type=int)
         class_id = request.args.get('class_id', type=int)
+        scoped_course_ids = accessible_course_ids()
 
-        print(f"Fetch Warnings: level={level}, status={status}, course_id={course_id}, class_id={class_id}")
+        if course_id and not can_access_course(course_id):
+            return jsonify({'success': False, 'message': '无权访问该课程预警'}), 403
+        if class_id and not can_access_class(class_id):
+            return jsonify({'success': False, 'message': '无权访问该班级预警'}), 403
 
         # 构建查询
-        query = Warning.query
+        query = Warning.query.filter(Warning.course_id.in_(scoped_course_ids))
 
         # 按课程筛选
         if course_id:
@@ -88,14 +91,11 @@ def get_warnings():
                 'suggestion': warning.suggestion,
                 'status': warning.status,
                 'created_at': warning.created_at.isoformat(),
-                'attendance_rate': metrics.get('attendance_rate'),
-                'assignment_rate': metrics.get('assignment_rate'), # 兼容旧字段名
-                'avg_score': metrics.get('avg_score'),
                 'score': metrics.get('comprehensive_score')
             })
 
         # 统计数据 (用于前端卡片数字)
-        base_stats_query = Warning.query
+        base_stats_query = Warning.query.filter(Warning.course_id.in_(scoped_course_ids))
         if course_id:
             base_stats_query = base_stats_query.filter(Warning.course_id == course_id)
         if class_id:
@@ -159,6 +159,8 @@ def get_warning_detail(warning_id):
         warning = Warning.query.get(warning_id)
         if not warning:
             return jsonify({'success': False, 'message': '预警不存在'}), 404
+        if not can_access_course(warning.course_id):
+            return jsonify({'success': False, 'message': '无权访问该预警'}), 403
         
         student = Student.query.get(warning.student_id)
         student_name = student.name if student else '未知学生'
@@ -182,6 +184,7 @@ def get_warning_detail(warning_id):
                 'metrics': warning.metrics,
                 'suggestion': warning.suggestion,
                 'status': warning.status,
+                'coverage': metrics.get('coverage'),
                 'created_at': warning.created_at.isoformat(),
                 'handled_at': (
                     warning.handled_at.isoformat() if warning.handled_at else None
@@ -208,6 +211,8 @@ def process_warning(warning_id):
         warning = Warning.query.get(warning_id)
         if not warning:
             return jsonify({'success': False, 'message': '预警不存在'}), 404
+        if not can_access_course(warning.course_id):
+            return jsonify({'success': False, 'message': '无权处理该预警'}), 403
         
         data = request.get_json()
         process_type = data.get('process_type')
@@ -267,6 +272,8 @@ def get_warning_history(warning_id):
         warning = Warning.query.get(warning_id)
         if not warning:
             return jsonify({'success': False, 'message': '预警不存在'}), 404
+        if not can_access_course(warning.course_id):
+            return jsonify({'success': False, 'message': '无权访问该预警'}), 403
         
         # 构建历史记录
         history = []
@@ -311,7 +318,7 @@ def generate_warnings():
         
         # 简单起见，对所有课程执行检查
         # 实际场景可能需要根据当前教师的课程来检查
-        courses = Course.query.all()
+        courses = Course.query.filter(Course.id.in_(accessible_course_ids())).all()
         total_generated = 0
         
         for course in courses:

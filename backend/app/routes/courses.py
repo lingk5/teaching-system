@@ -1,10 +1,45 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from ..models import db, Course, Class, Student, Warning, User
-from ..services.warning_engine import WarningEngine # 引入预警引擎计算分数
-from ..utils.permissions import current_user_can
+from flask_jwt_extended import jwt_required
+from sqlalchemy import func, case
+from ..models import db, Course, Class, Student, Warning, User, AssistantCourseAssignment
+from ..models.data import Attendance
+from ..services.warning_engine import WarningEngine
+from ..utils.permissions import (
+    current_user_can,
+    current_user_id,
+    current_role,
+    can_access_course,
+    can_access_class,
+    can_access_student,
+    accessible_course_query,
+)
 
 courses_bp = Blueprint('courses', __name__)
+
+
+def _compute_attendance_rate(student_ids, course_id):
+    if not student_ids:
+        return None
+
+    total = Attendance.query.filter(
+        Attendance.student_id.in_(student_ids),
+        Attendance.course_id == course_id
+    ).count()
+    if total == 0:
+        return None
+
+    present = Attendance.query.filter(
+        Attendance.student_id.in_(student_ids),
+        Attendance.course_id == course_id,
+        Attendance.status == 'present'
+    ).count()
+    return round(present / total * 100, 1)
+
+
+def _can_manage_course_assignments(course):
+    role = current_role()
+    user_id = current_user_id()
+    return role == 'admin' or (role == 'teacher' and course.teacher_id == user_id)
 
 
 @courses_bp.route('/', methods=['GET'])
@@ -12,27 +47,39 @@ courses_bp = Blueprint('courses', __name__)
 def get_courses():
     """获取所有课程及班级信息"""
     try:
-        courses = Course.query.all()
+        courses = accessible_course_query().order_by(Course.id.asc()).all()
         data = []
 
         for course in courses:
             teacher = User.query.get(course.teacher_id) if course.teacher_id else None
+            assistant_rows = db.session.query(
+                AssistantCourseAssignment,
+                User.name,
+                User.username
+            ).join(
+                User,
+                AssistantCourseAssignment.assistant_id == User.id
+            ).filter(
+                AssistantCourseAssignment.course_id == course.id
+            ).all()
             
             # 获取该课程的所有班级
             classes = Class.query.filter_by(course_id=course.id).all()
             classes_data = []
+            all_course_student_ids = []
 
             for cls in classes:
-                student_count = Student.query.filter_by(class_id=cls.id).count()
-                
-                # 获取班级学生ID列表
-                class_student_ids = [s.id for s in Student.query.filter_by(class_id=cls.id).all()]
+                class_students = Student.query.filter_by(class_id=cls.id).all()
+                class_student_ids = [s.id for s in class_students]
+                student_count = len(class_student_ids)
+                all_course_student_ids.extend(class_student_ids)
                 
                 warning_count = 0
                 if class_student_ids:
                     warning_count = Warning.query.filter(
                         Warning.student_id.in_(class_student_ids),
-                        Warning.status == 'active'
+                        Warning.course_id == course.id,
+                        Warning.status.in_(['active', 'pending'])
                     ).count()
 
                 classes_data.append({
@@ -40,8 +87,8 @@ def get_courses():
                     'name': cls.name,
                     'student_count': student_count,
                     'warning_count': warning_count,
-                    'attendance_rate': 85,  # 待实现具体计算逻辑
-                    'teacher': '未分配'  # 待实现
+                    'attendance_rate': _compute_attendance_rate(class_student_ids, course.id),
+                    'teacher': teacher.name if teacher else None
                 })
 
             data.append({
@@ -52,8 +99,18 @@ def get_courses():
                 'semester': course.semester,
                 'student_count': sum(c['student_count'] for c in classes_data),
                 'warning_count': sum(c['warning_count'] for c in classes_data),
-                'attendance_rate': 85,
-                'classes': classes_data
+                'attendance_rate': _compute_attendance_rate(all_course_student_ids, course.id),
+                'classes': classes_data,
+                'assistants': [
+                    {
+                        'assistant_id': row.assistant_id,
+                        'assistant_name': name,
+                        'assistant_username': username,
+                        'assigned_by': row.assigned_by,
+                        'assigned_at': row.assigned_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    }
+                    for row, name, username in assistant_rows
+                ],
             })
 
         return jsonify({'success': True, 'data': data})
@@ -87,34 +144,9 @@ def create_course():
         if existing_course:
             return jsonify({'success': False, 'message': f'课程代码 {code} 已存在'}), 400
 
-    # 获取当前用户ID
-    current_user_identity = get_jwt_identity()
-    
-    # 兼容不同的 identity 类型 (可能是对象或直接是ID)
-    teacher_id = None
-    if isinstance(current_user_identity, dict):
-        teacher_id = current_user_identity.get('id')
-    else:
-        try:
-            teacher_id = int(current_user_identity)
-        except (ValueError, TypeError):
-            pass
-            
-    if not teacher_id:
-        # 如果从JWT拿不到ID，尝试通过用户名查找
-        if isinstance(current_user_identity, str):
-            user = User.query.filter_by(username=current_user_identity).first()
-            if user:
-                teacher_id = user.id
-
-    if not teacher_id:
-         # 尝试从 User 表查找第一个用户作为 fallback (仅用于测试环境)
-        first_user = User.query.first()
-        if first_user:
-            teacher_id = first_user.id
-        else:
-            # 如果系统真的没有任何用户，这是一个严重问题
-            return jsonify({'success': False, 'message': '无法获取有效的教师ID，且系统中无用户'}), 401
+    role = current_role()
+    requester_id = current_user_id()
+    teacher_id = requester_id if role == 'teacher' else payload.get('teacher_id', requester_id)
 
     teacher = User.query.get(teacher_id)
     if not teacher:
@@ -154,10 +186,27 @@ def create_course():
         return jsonify({'success': False, 'message': f'创建课程失败: {str(e)}'}), 500
 
 
+@courses_bp.route('/assistant-options', methods=['GET'])
+@jwt_required()
+def assistant_options():
+    """获取可分配的助教列表"""
+    if current_role() == 'assistant':
+        return jsonify({'success': False, 'message': '助教无权限查看可分配助教列表'}), 403
+
+    assistants = User.query.filter_by(role='assistant').order_by(User.id.asc()).all()
+    return jsonify({
+        'success': True,
+        'data': [assistant.to_dict() for assistant in assistants]
+    })
+
+
 @courses_bp.route('/<int:course_id>/classes', methods=['GET', 'POST'])
 @jwt_required()
 def classes(course_id):
     """获取班级或创建班级"""
+    if not can_access_course(course_id):
+        return jsonify({'success': False, 'message': '无权访问该课程'}), 403
+
     if request.method == 'GET':
         try:
             classes = Class.query.filter_by(course_id=course_id).all()
@@ -200,6 +249,9 @@ def classes(course_id):
 @jwt_required()
 def students(course_id, class_id):
     """获取学生或添加学生"""
+    if not can_access_course(course_id) or not can_access_class(class_id):
+        return jsonify({'success': False, 'message': '无权访问该班级'}), 403
+
     if request.method == 'GET':
         try:
             students = Student.query.filter_by(class_id=class_id).all()
@@ -213,18 +265,18 @@ def students(course_id, class_id):
                 
                 # 1. 计算分数 (使用 WarningEngine 逻辑)
                 metrics = engine._calculate_metrics(s.id)
-                score = engine._calculate_comprehensive_score(metrics)
-                s_dict['score'] = round(score, 1)
+                score_details = engine._calculate_comprehensive_score(metrics)
+                if isinstance(score_details, dict):
+                    s_dict['score'] = round(score_details['comprehensive_score'], 1)
+                else:
+                    s_dict['score'] = round(score_details, 1)
                 
                 # 2. 获取预警状态 (从 Warning 表查)
                 active_warning = Warning.query.filter_by(
                     student_id=s.id, 
                     course_id=course_id, 
                     status='active'
-                ).order_by(Warning.level).first() # 获取最严重的预警 (red < orange < yellow, 字典序 r < o < y 需注意)
-                
-                # 实际上 level 字符串比较：red > orange > yellow 
-                # 但我们更关心是否有 active warning
+                ).first()
                 
                 s_dict['warning_level'] = active_warning.level if active_warning else None
                 s_dict['class_name'] = s.class_.name # 补充班级名称
@@ -278,6 +330,9 @@ def manage_student(student_id):
     if not student:
         return jsonify({'success': False, 'message': '学生不存在'}), 404
 
+    if not can_access_student(student_id):
+        return jsonify({'success': False, 'message': '无权访问该学生'}), 403
+
     if not current_user_can('manage_students'):
         return jsonify({'success': False, 'message': '助教无权限修改或删除学生'}), 403
         
@@ -316,3 +371,89 @@ def manage_student(student_id):
         except Exception as e:
             db.session.rollback()
             return jsonify({'success': False, 'message': f'修改失败: {str(e)}'}), 500
+
+
+@courses_bp.route('/<int:course_id>/assistants', methods=['GET', 'POST'])
+@jwt_required()
+def course_assistants(course_id):
+    if not can_access_course(course_id):
+        return jsonify({'success': False, 'message': '无权访问该课程'}), 403
+
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'success': False, 'message': '课程不存在'}), 404
+
+    if request.method == 'GET':
+        rows = db.session.query(
+            AssistantCourseAssignment,
+            User.name,
+            User.username
+        ).join(
+            User,
+            AssistantCourseAssignment.assistant_id == User.id
+        ).filter(
+            AssistantCourseAssignment.course_id == course_id
+        ).all()
+        return jsonify({
+            'success': True,
+            'data': [
+                {
+                    'assistant_id': assignment.assistant_id,
+                    'assistant_name': name,
+                    'assistant_username': username,
+                    'assigned_by': assignment.assigned_by,
+                    'assigned_at': assignment.assigned_at.strftime('%Y-%m-%d %H:%M:%S'),
+                }
+                for assignment, name, username in rows
+            ]
+        })
+
+    if not _can_manage_course_assignments(course):
+        return jsonify({'success': False, 'message': '无权管理该课程助教'}), 403
+
+    payload = request.get_json() or {}
+    assistant_id = payload.get('assistant_id')
+    assistant = User.query.get(assistant_id)
+    if not assistant or assistant.role != 'assistant':
+        return jsonify({'success': False, 'message': '助教账号不存在'}), 400
+
+    existing = AssistantCourseAssignment.query.filter_by(
+        assistant_id=assistant_id,
+        course_id=course_id
+    ).first()
+    if existing:
+        return jsonify({'success': True, 'message': '该助教已分配到本课程', 'data': existing.to_dict()}), 200
+
+    assignment = AssistantCourseAssignment(
+        assistant_id=assistant_id,
+        course_id=course_id,
+        assigned_by=current_user_id(),
+    )
+    db.session.add(assignment)
+    db.session.commit()
+    return jsonify({'success': True, 'message': '助教分配成功', 'data': assignment.to_dict()}), 201
+
+
+@courses_bp.route('/<int:course_id>/assistants/<int:assistant_id>', methods=['DELETE'])
+@jwt_required()
+def delete_course_assistant(course_id, assistant_id):
+    if not can_access_course(course_id):
+        return jsonify({'success': False, 'message': '无权访问该课程'}), 403
+
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'success': False, 'message': '课程不存在'}), 404
+
+    if not _can_manage_course_assignments(course):
+        return jsonify({'success': False, 'message': '无权管理该课程助教'}), 403
+
+    assignment = AssistantCourseAssignment.query.filter_by(
+        course_id=course_id,
+        assistant_id=assistant_id
+    ).first()
+    if not assignment:
+        return jsonify({'success': False, 'message': '助教分配不存在'}), 404
+
+    db.session.delete(assignment)
+    db.session.commit()
+    return jsonify({'success': True, 'message': '助教分配已取消'})

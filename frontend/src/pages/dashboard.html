@@ -288,163 +288,243 @@
         </div>
     </div>
 
-    <!-- 脚本逻辑 -->
     <script>
-        // ────────────────────────────────────────────────────────────
-        //  模拟数据兜底（无真实数据时展示用，看起来合理、好看）
-        // ────────────────────────────────────────────────────────────
-        const MOCK = {
-            attendanceRate: '85%',
-            homeworkRate:   '92%',
-            attendanceTrend: {
-                labels: ['周一', '周二', '周三', '周四', '周五'],
-                data:   [95, 93, 88, 96, 94]
-            },
-            warningDist: { red: 5, orange: 12, yellow: 8, normal: 75 }
-        };
-
-        // 图表实例（供后续 updateCharts 复用）
         let attendanceChart = null;
-        let warningChart    = null;
+        let warningChart = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. 显示用户信息（姓名和角色）
             loadUserInfoToUI();
-
-            // 2. 根据角色初始化差异化 UI
             applyRoleSpecificUI();
-
-            // 3. 初始化图表（先用模拟数据渲染，让页面"有内容"）
-            initCharts(MOCK.attendanceTrend, MOCK.warningDist);
-
-            // 4. 拉取真实数据，若存在则覆盖
+            initCharts();
             await refreshData();
         });
 
-        // ── 角色差异化 UI ──────────────────────────────────────────────
         function applyRoleSpecificUI() {
-            let user = {};
-            try {
-                const str = localStorage.getItem('userInfo');
-                if (str) user = JSON.parse(str);
-            } catch (e) {}
+            const user = (() => {
+                try {
+                    return JSON.parse(localStorage.getItem('userInfo') || '{}');
+                } catch (error) {
+                    return {};
+                }
+            })();
 
             const role = (user.role || 'teacher').toLowerCase();
-
-            // 动态标题
             const titleMap = {
-                admin:     '管理员仪表盘',
-                teacher:   '教师仪表盘',
+                admin: '管理员仪表盘',
+                teacher: '教师仪表盘',
                 assistant: '助教仪表盘'
             };
             const title = titleMap[role] || '仪表盘';
-            document.title = title + ' - 教学效果监督系统';
-            const titleEl = document.getElementById('dashboardTitle');
-            if (titleEl) titleEl.textContent = title;
 
-            // admin 专属统计行
+            document.title = `${title} - 教学效果监督系统`;
+            document.getElementById('dashboardTitle').textContent = title;
+
             if (role === 'admin') {
-                const adminRow = document.getElementById('adminStatsRow');
-                if (adminRow) adminRow.style.display = '';
-                // admin 时第一个卡片标签改为"全局学生总数"
-                const lbl = document.getElementById('studentCountLabel');
-                if (lbl) lbl.textContent = '全局学生总数';
-            }
-
-            // assistant：隐藏"生成预警"按钮（只读权限）
-            if (role === 'assistant') {
-                document.querySelectorAll('button[onclick*="checkWarnings"]').forEach(el => {
-                    el.style.display = 'none';
-                });
+                document.getElementById('adminStatsRow').style.display = '';
+                document.getElementById('studentCountLabel').textContent = '全局学生总数';
             }
         }
 
-        // ── 刷新全部数据 ──────────────────────────────────────────────
+        function ensureChartState(canvasId, stateId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                return null;
+            }
+
+            let stateEl = document.getElementById(stateId);
+            if (!stateEl) {
+                stateEl = document.createElement('div');
+                stateEl.id = stateId;
+                stateEl.className = 'text-center text-muted small mt-3';
+                canvas.parentElement.insertAdjacentElement('afterend', stateEl);
+            }
+            return stateEl;
+        }
+
+        function setChartState(stateId, message) {
+            const el = document.getElementById(stateId);
+            if (el) {
+                el.textContent = message || '';
+                el.style.display = message ? '' : 'none';
+            }
+        }
+
+        function initCharts() {
+            ensureChartState('attendanceChart', 'attendanceChartState');
+            ensureChartState('warningChart', 'warningChartState');
+
+            attendanceChart = new Chart(document.getElementById('attendanceChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '出勤率(%)',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, min: 0, max: 100 } }
+                }
+            });
+
+            warningChart = new Chart(document.getElementById('warningChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['红色预警', '橙色预警', '黄色预警', '正常'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#dc2626', '#ea580c', '#d97706', '#22c55e'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 16, font: { size: 12 } }
+                        }
+                    }
+                }
+            });
+
+            setChartState('attendanceChartState', '暂无数据，当前版本暂未提供仪表盘趋势数据。');
+            setChartState('warningChartState', '暂无数据');
+        }
+
         async function refreshData() {
-            try {
-                const [statsRes, warningsRes] = await Promise.allSettled([
-                    request.get('/status'),
-                    request.get('/warnings/', { page: 1, per_page: 5, level: 'red' })
-                ]);
+            const [statsRes, warningsRes] = await Promise.allSettled([
+                request.get('/status'),
+                request.get('/warnings/', { page: 1, per_page: 5, level: 'red' })
+            ]);
 
-                // ── 统计卡片 ──
-                if (statsRes.status === 'fulfilled') {
-                    const stats = statsRes.value.stats;
-                    updateStat('studentCount', stats.students);
-                    updateStat('warningCount', stats.warnings);
+            if (statsRes.status === 'fulfilled') {
+                const stats = statsRes.value.stats || {};
+                updateStat('studentCount', stats.students ?? 0);
+                updateStat('warningCount', stats.warnings ?? 0);
+                updateStat('attendanceRate', formatPercent(stats.attendance_rate));
+                updateStat('homeworkRate', formatPercent(stats.homework_rate));
 
-                    // 出勤率：有真实数据用真实，否则用模拟值
-                    updateStat('attendanceRate',
-                        stats.attendance_rate != null ? stats.attendance_rate + '%' : MOCK.attendanceRate);
-                    updateStat('homeworkRate',
-                        stats.homework_rate != null ? stats.homework_rate + '%' : MOCK.homeworkRate);
-
-                    // ── admin 专属卡片 ──
-                    let user = {};
-                    try { user = JSON.parse(localStorage.getItem('userInfo') || '{}'); } catch(e){}
-                    const role = (user.role || 'teacher').toLowerCase();
-                    if (role === 'admin') {
-                        updateStat('teacherCount',     stats.users     ?? '-');
-                        updateStat('courseCount',      stats.courses   ?? '-');
-                        updateStat('classCount',       stats.classes   ?? '-');
-                        updateStat('interactionCount', stats.interactions ?? '-');
+                const user = (() => {
+                    try {
+                        return JSON.parse(localStorage.getItem('userInfo') || '{}');
+                    } catch (error) {
+                        return {};
                     }
+                })();
 
-                    // ── 预警分布图：有真实数据则覆盖模拟值 ──
-                    const dist = stats.warning_distribution;
-                    const hasRealDist = dist && (dist.red + dist.orange + dist.yellow + dist.normal) > 0;
-                    if (hasRealDist && warningChart) {
-                        warningChart.data.datasets[0].data = [
-                            dist.red, dist.orange, dist.yellow, dist.normal
-                        ];
-                        warningChart.update();
-                    }
+                if ((user.role || '').toLowerCase() === 'admin') {
+                    updateStat('teacherCount', stats.users ?? 0);
+                    updateStat('courseCount', stats.courses ?? 0);
+                    updateStat('classCount', stats.classes ?? 0);
+                    updateStat('interactionCount', stats.interactions ?? 0);
                 }
 
-                // ── 预警列表 ──
-                if (warningsRes.status === 'fulfilled') {
-                    renderWarnings(warningsRes.value.warnings);
-                }
+                updateWarningChart(stats.warning_distribution || {});
+            } else {
+                console.error('获取仪表盘统计失败:', statsRes.reason);
+            }
 
-            } catch (err) {
-                console.error('刷新数据失败:', err);
+            if (warningsRes.status === 'fulfilled') {
+                renderWarnings(warningsRes.value.warnings || []);
+            } else {
+                console.error('获取预警列表失败:', warningsRes.reason);
+                renderWarnings([]);
+            }
+
+            updateAttendanceTrend([]);
+        }
+
+        function formatPercent(value) {
+            return value == null ? '暂无数据' : `${value}%`;
+        }
+
+        function updateStat(id, value) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = value;
             }
         }
 
-        function updateStat(id, val) {
-            const el = document.getElementById(id);
-            if (el) el.textContent = val ?? '-';
-        }
-
-        // ── 预警列表渲染 ──────────────────────────────────────────────
-        function renderWarnings(warnings) {
-            const tbody = document.getElementById('warningTable');
-            if (!warnings || warnings.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">暂无高风险预警</td></tr>';
+        function updateAttendanceTrend(points) {
+            if (!attendanceChart) {
                 return;
             }
+
+            if (!points.length) {
+                attendanceChart.data.labels = [];
+                attendanceChart.data.datasets[0].data = [];
+                attendanceChart.update();
+                setChartState('attendanceChartState', '暂无数据，当前版本暂未提供仪表盘趋势数据。');
+                return;
+            }
+
+            attendanceChart.data.labels = points.map(item => item.label);
+            attendanceChart.data.datasets[0].data = points.map(item => item.value);
+            attendanceChart.update();
+            setChartState('attendanceChartState', '');
+        }
+
+        function updateWarningChart(distribution) {
+            if (!warningChart) {
+                return;
+            }
+
+            const values = [
+                distribution.red || 0,
+                distribution.orange || 0,
+                distribution.yellow || 0,
+                distribution.normal || 0
+            ];
+            warningChart.data.datasets[0].data = values;
+            warningChart.update();
+            setChartState(
+                'warningChartState',
+                values.some(value => value > 0) ? '' : '暂无数据'
+            );
+        }
+
+        function renderWarnings(warnings) {
+            const tbody = document.getElementById('warningTable');
+            if (!warnings.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">暂无数据</td></tr>';
+                return;
+            }
+
             const levelLabel = { red: '红色', orange: '橙色', yellow: '黄色' };
-            tbody.innerHTML = warnings.map(w => `
+            tbody.innerHTML = warnings.map((warning) => `
                 <tr>
-                    <td>${w.student_no}</td>
-                    <td>${w.student_name}</td>
-                    <td>${w.class_name || '-'}</td>
-                    <td><span class="warning-badge warning-${w.level}">${levelLabel[w.level] || w.level}</span></td>
-                    <td class="text-muted small" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${w.reason}</td>
-                    <td><a href="warnings.html" class="btn btn-sm btn-light text-primary">处理</a></td>
+                    <td>${warning.student_no || '-'}</td>
+                    <td>${warning.student_name || '-'}</td>
+                    <td>${warning.class_name || '-'}</td>
+                    <td><span class="warning-badge warning-${warning.level}">${levelLabel[warning.level] || warning.level || '-'}</span></td>
+                    <td class="text-muted small" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${warning.reason || '-'}</td>
+                    <td><a href="warnings.html" class="btn btn-sm btn-light text-primary">查看</a></td>
                 </tr>
             `).join('');
         }
 
-        // ── 生成预警 ──────────────────────────────────────────────────
         async function checkWarnings() {
-            if (!confirm('确定要重新计算所有学生的预警状态吗？这可能需要几秒钟。')) return;
+            if (!confirm('确定重新计算可访问课程的预警状态吗？')) {
+                return;
+            }
+
             try {
-                const res = await request.post('/warnings/generate');
-                alert(res.message);
+                const result = await request.post('/warnings/generate');
+                alert(result.message || '预警生成完成');
                 await refreshData();
-            } catch (err) {
-                alert('预警检查失败: ' + err.message);
+            } catch (error) {
+                alert(`预警检查失败: ${error.message}`);
             }
         }
 
@@ -452,69 +532,6 @@
             if (confirm('确定要退出登录吗？')) {
                 localStorage.clear();
                 window.location.href = 'login.html';
-            }
-        }
-
-        // ── 初始化图表（支持传入数据，兜底用模拟值）────────────────────
-        function initCharts(trendData, distData) {
-            // 出勤趋势图
-            const ctxAtt = document.getElementById('attendanceChart');
-            if (ctxAtt) {
-                attendanceChart = new Chart(ctxAtt, {
-                    type: 'line',
-                    data: {
-                        labels: trendData.labels,
-                        datasets: [{
-                            label: '出勤率(%)',
-                            data: trendData.data,
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59,130,246,0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            pointBackgroundColor: '#3b82f6',
-                            pointRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: false, min: 60, max: 100 } }
-                    }
-                });
-            }
-
-            // 预警分布图
-            const ctxWarn = document.getElementById('warningChart');
-            if (ctxWarn) {
-                warningChart = new Chart(ctxWarn, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['红色预警', '橙色预警', '黄色预警', '正常'],
-                        datasets: [{
-                            data: [distData.red, distData.orange, distData.yellow, distData.normal],
-                            backgroundColor: ['#dc2626', '#ea580c', '#d97706', '#22c55e'],
-                            borderWidth: 2,
-                            borderColor: '#fff'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'bottom', labels: { padding: 16, font: { size: 12 } } },
-                            tooltip: {
-                                callbacks: {
-                                    label: ctx => {
-                                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                                        const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
-                                        return ` ${ctx.label}: ${ctx.parsed} 人 (${pct}%)`;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
             }
         }
     </script>

@@ -24,6 +24,7 @@ class WeightConfig:
         'orange': 75,   # 综合分 < 75  → 橙色（关注）
         'yellow': 85,   # 综合分 < 85  → 黄色（提醒）
     }
+    WARNING_MIN_COVERED_FIELDS = 2
 
     # ────────────────────────────────────────────────────────────
 
@@ -37,12 +38,53 @@ class WeightConfig:
         :returns: 综合评分，浮点数，范围 0–100
         :raises ValueError: 当 metrics 缺少必要字段时
         """
+        coverage = cls.get_coverage(metrics)
+        if coverage['covered_count'] == 0:
+            return 0.0
+
+        effective_weight = sum(
+            cls.COMPREHENSIVE_WEIGHTS[key]
+            for key in coverage['covered_fields']
+        )
         score = 0.0
-        for key, weight in cls.COMPREHENSIVE_WEIGHTS.items():
+        for key in cls.COMPREHENSIVE_WEIGHTS:
             if key not in metrics:
                 raise ValueError(f"缺少必要的指标字段: '{key}'")
-            score += float(metrics[key]) * weight
+            value = metrics[key]
+            if value is None:
+                continue
+            score += float(value) * cls.COMPREHENSIVE_WEIGHTS[key]
+        score = score / effective_weight if effective_weight > 0 else 0.0
         return max(0.0, min(100.0, score))
+
+    @classmethod
+    def get_coverage(cls, metrics: dict) -> dict:
+        covered_fields = []
+        missing_fields = []
+        for key in cls.COMPREHENSIVE_WEIGHTS:
+            if key not in metrics:
+                raise ValueError(f"缺少必要的指标字段: '{key}'")
+            if metrics[key] is None:
+                missing_fields.append(key)
+            else:
+                covered_fields.append(key)
+
+        return {
+            'covered_count': len(covered_fields),
+            'total_count': len(cls.COMPREHENSIVE_WEIGHTS),
+            'covered_fields': covered_fields,
+            'missing_fields': missing_fields,
+            'eligible_for_warning': len(covered_fields) >= cls.WARNING_MIN_COVERED_FIELDS,
+        }
+
+    @classmethod
+    def calculate_score_details(cls, metrics: dict) -> dict:
+        coverage = cls.get_coverage(metrics)
+        return {
+            'comprehensive_score': round(cls.calculate_comprehensive_score(metrics), 2),
+            'coverage': coverage,
+            'eligible_for_warning': coverage['eligible_for_warning'],
+        }
 
     @classmethod
     def get_warning_level(cls, score: float):

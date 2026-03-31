@@ -59,7 +59,7 @@ def create_app():
     db.init_app(app)
 
     # 导入模型（用于创建表和统计接口）
-    from .models import User, Course, Class, Student
+    from .models import User, Course, Class, Student, AssistantCourseAssignment
     from .models.data import Attendance, Homework, Quiz, Interaction
     from .models.warning import Warning
 
@@ -183,11 +183,31 @@ def create_app():
     @app.route('/api/status')
     @jwt_required()
     def status():
+        accessible_course_ids = None
+        if not current_user_can('manage_users'):
+            from .utils.permissions import accessible_course_ids as load_accessible_course_ids
+            accessible_course_ids = load_accessible_course_ids()
+
         # 基础计数
-        total_attendance = Attendance.query.count()
-        present_count    = Attendance.query.filter_by(status='present').count()
-        total_homework   = Homework.query.count()
-        completed_hw     = Homework.query.filter(
+        attendance_query = Attendance.query
+        homework_query = Homework.query
+        quiz_query = Quiz.query
+        interaction_query = Interaction.query
+        warning_query = Warning.query
+        student_query = Student.query.join(Class, Student.class_id == Class.id)
+
+        if accessible_course_ids is not None:
+            attendance_query = attendance_query.filter(Attendance.course_id.in_(accessible_course_ids))
+            homework_query = homework_query.filter(Homework.course_id.in_(accessible_course_ids))
+            quiz_query = quiz_query.filter(Quiz.course_id.in_(accessible_course_ids))
+            interaction_query = interaction_query.filter(Interaction.course_id.in_(accessible_course_ids))
+            warning_query = warning_query.filter(Warning.course_id.in_(accessible_course_ids))
+            student_query = student_query.filter(Class.course_id.in_(accessible_course_ids))
+
+        total_attendance = attendance_query.count()
+        present_count = attendance_query.filter_by(status='present').count()
+        total_homework = homework_query.count()
+        completed_hw = homework_query.filter(
             Homework.status.in_(['submitted', 'graded'])
         ).count()
 
@@ -195,18 +215,18 @@ def create_app():
         homework_rate   = round(completed_hw / total_homework * 100, 1) if total_homework > 0 else None
 
         # 预警分布 (红/橙/黄/正常)
-        total_students = Student.query.count()
-        warn_red    = Warning.query.filter_by(level='red').count()
-        warn_orange = Warning.query.filter_by(level='orange').count()
-        warn_yellow = Warning.query.filter_by(level='yellow').count()
+        total_students = student_query.count()
+        warn_red = warning_query.filter_by(level='red').count()
+        warn_orange = warning_query.filter_by(level='orange').count()
+        warn_yellow = warning_query.filter_by(level='yellow').count()
         normal_count = max(total_students - warn_red - warn_orange - warn_yellow, 0)
 
         stats = {
             'students':        total_students,
             'attendances':     total_attendance,
             'homeworks':       total_homework,
-            'quizzes':         Quiz.query.count(),
-            'warnings':        Warning.query.count(),
+            'quizzes':         quiz_query.count(),
+            'warnings':        warning_query.count(),
             'attendance_rate': attendance_rate,
             'homework_rate':   homework_rate,
             'warning_distribution': {
@@ -222,7 +242,7 @@ def create_app():
                 'users':        User.query.count(),
                 'courses':      Course.query.count(),
                 'classes':      Class.query.count(),
-                'interactions': Interaction.query.count(),
+                'interactions': interaction_query.count(),
             })
         return jsonify({
             "status": "running",

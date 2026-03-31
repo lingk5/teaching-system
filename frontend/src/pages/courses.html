@@ -89,6 +89,24 @@
         .class-info h6 { margin: 0; color: #334155; font-size: 15px; font-weight: 600; }
         .class-info small { color: #94a3b8; font-size: 13px; }
         .class-stats { display: flex; gap: 16px; font-size: 13px; color: #64748b; }
+        .assistant-section {
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+            padding: 16px; margin-bottom: 16px;
+        }
+        .assistant-section-header {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            margin-bottom: 12px;
+        }
+        .assistant-list { display: flex; flex-wrap: wrap; gap: 10px; }
+        .assistant-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: white; border: 1px solid #dbeafe; color: #1e40af;
+            border-radius: 999px; padding: 6px 12px; font-size: 13px;
+        }
+        .assistant-chip button {
+            border: none; background: transparent; color: #dc2626; padding: 0;
+        }
+        .assistant-empty { color: #94a3b8; font-size: 13px; }
         
         .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; background: white; border-radius: 16px; }
         .loading { text-align: center; padding: 40px; color: #64748b; }
@@ -178,6 +196,31 @@
         </div>
     </div>
 
+    <div class="modal fade" id="assignAssistantModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">分配助教</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="assistantCourseId">
+                    <div class="mb-3">
+                        <label for="assistantSelect" class="form-label">选择助教</label>
+                        <select id="assistantSelect" class="form-select">
+                            <option value="">请选择助教</option>
+                        </select>
+                        <div class="form-text">教师默认指派，管理员可补救调整。</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" data-capability="manage_courses" onclick="assignAssistant()">确认分配</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 主内容 -->
     <div class="main-content">
         <div class="page-header">
@@ -234,6 +277,8 @@
     <script>
         // 全局变量
         let currentCourseId = null;
+        let assistantOptions = [];
+        let currentAssistantCourseId = null;
 
         // 设置当前操作的课程ID (供添加班级使用)
         function setCurrentCourse(courseId) {
@@ -248,7 +293,8 @@
             // 2. 显示用户信息 (从 localStorage 获取)
             loadUserInfoToUI();
             
-            // 3. 加载课程列表
+            // 3. 加载助教候选与课程列表
+            loadAssistantOptions();
             loadCourses();
         });
 
@@ -281,6 +327,21 @@
                         <small class="text-muted">请检查后端服务是否启动，或尝试刷新页面。</small>
                     </div>
                 `;
+            }
+        }
+
+        async function loadAssistantOptions() {
+            if (!currentUserCan('manage_courses')) {
+                assistantOptions = [];
+                return;
+            }
+
+            try {
+                const response = await request.get('/courses/assistant-options');
+                assistantOptions = response.data || [];
+            } catch (error) {
+                console.error('加载助教候选失败:', error);
+                assistantOptions = [];
             }
         }
 
@@ -402,11 +463,45 @@
                         </div>
                         <!-- 出勤率暂未实现真实计算 -->
                         <div class="stat-badge badge-rate">
-                            <i class="bi bi-check-circle"></i> 状态正常
+                            <i class="bi bi-check-circle"></i> ${course.attendance_rate == null ? '暂无统计' : `出勤率 ${course.attendance_rate}%`}
                         </div>
                     </div>
                     
                     <div class="classes-section" id="classes-${course.id}" style="display: none;">
+                        <div class="assistant-section">
+                            <div class="assistant-section-header">
+                                <div class="section-title mb-0" style="cursor: default;">
+                                    <i class="bi bi-person-lines-fill"></i>
+                                    <span>已分配助教</span>
+                                </div>
+                                <button
+                                    class="btn btn-outline-primary btn-sm"
+                                    data-capability="manage_courses"
+                                    onclick="event.stopPropagation(); openAssistantModal(${course.id})"
+                                >
+                                    <i class="bi bi-plus-circle me-1"></i>分配助教
+                                </button>
+                            </div>
+                            <div class="assistant-list">
+                                ${(course.assistants || []).length
+                                    ? course.assistants.map(assistant => `
+                                        <span class="assistant-chip">
+                                            ${assistant.assistant_name || assistant.assistant_username}
+                                            <small class="text-muted">@${assistant.assistant_username || assistant.assistant_id}</small>
+                                            <button
+                                                type="button"
+                                                data-capability="manage_courses"
+                                                onclick="event.stopPropagation(); unassignAssistant(${course.id}, ${assistant.assistant_id})"
+                                                title="取消分配"
+                                            >
+                                                <i class="bi bi-x-circle-fill"></i>
+                                            </button>
+                                        </span>
+                                    `).join('')
+                                    : '<div class="assistant-empty">暂无已分配助教</div>'
+                                }
+                            </div>
+                        </div>
                         <div class="section-title" onclick="toggleClasses(${course.id})">
                             <i class="bi bi-chevron-down chevron" id="class-arrow-${course.id}"></i>
                             <span>包含班级 (${(course.classes || []).length})</span>
@@ -439,6 +534,52 @@
             document.getElementById('courseList').innerHTML = html;
             if (typeof applyRoleUI === 'function') {
                 applyRoleUI();
+            }
+        }
+
+        function openAssistantModal(courseId) {
+            currentAssistantCourseId = courseId;
+            document.getElementById('assistantCourseId').value = courseId;
+
+            const select = document.getElementById('assistantSelect');
+            select.innerHTML = '<option value="">请选择助教</option>';
+            assistantOptions.forEach((assistant) => {
+                select.innerHTML += `<option value="${assistant.id}">${assistant.name} (@${assistant.username})</option>`;
+            });
+
+            new bootstrap.Modal(document.getElementById('assignAssistantModal')).show();
+        }
+
+        async function assignAssistant() {
+            const assistantId = document.getElementById('assistantSelect').value;
+            if (!currentAssistantCourseId || !assistantId) {
+                alert('请选择助教');
+                return;
+            }
+
+            try {
+                await request.post(`/courses/${currentAssistantCourseId}/assistants`, {
+                    assistant_id: Number(assistantId)
+                });
+
+                bootstrap.Modal.getInstance(document.getElementById('assignAssistantModal')).hide();
+                document.getElementById('assistantSelect').value = '';
+                await loadCourses();
+            } catch (error) {
+                alert(`分配失败: ${error.message}`);
+            }
+        }
+
+        async function unassignAssistant(courseId, assistantId) {
+            if (!confirm('确定取消该助教的课程指派吗？')) {
+                return;
+            }
+
+            try {
+                await request.delete(`/courses/${courseId}/assistants/${assistantId}`);
+                await loadCourses();
+            } catch (error) {
+                alert(`取消失败: ${error.message}`);
             }
         }
         

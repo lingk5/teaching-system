@@ -6,6 +6,7 @@ import path from 'node:path';
 
 const dashboardFile = path.resolve('frontend/src/pages/dashboard.html');
 const analyticsFile = path.resolve('frontend/src/pages/analytics.html');
+const coursesFile = path.resolve('frontend/src/pages/courses.html');
 
 
 test('dashboard page removes mock fallback data and uses empty states', () => {
@@ -25,4 +26,14 @@ test('analytics page removes demo ranking fallback and mock charts', () => {
     assert.equal(source.includes('当前显示演示数据'), false);
     assert.equal(source.includes('grade_profile'), false);
     assert.equal(source.includes('暂无数据'), true);
+    assert.equal(source.includes('覆盖率'), true);
+});
+
+
+test('courses page exposes assistant assignment UI hooks', () => {
+    const source = fs.readFileSync(coursesFile, 'utf8');
+
+    assert.equal(source.includes('/assistants'), true);
+    assert.equal(source.includes('已分配助教'), true);
+    assert.equal(source.includes('分配助教'), true);
 });
