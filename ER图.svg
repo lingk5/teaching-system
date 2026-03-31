@@ -1,26 +1,149 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1120" viewBox="0 0 1500 1120">
-
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080">
   <defs>
     <style>
-      .title { font: 700 28px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
-      .subtitle { font: 15px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #555555; }
-      .actor { font: 700 18px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
-      .text { font: 16px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
-      .small { font: 14px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #222222; }
-      .table-title { font: 700 18px "Times New Roman", "PingFang SC", serif; fill: #111111; }
-      .field { font: 14px "Times New Roman", Consolas, monospace; fill: #111111; }
-      .frame { fill: #ffffff; stroke: #111111; stroke-width: 2; }
-      .thin { fill: #ffffff; stroke: #111111; stroke-width: 1.7; }
-      .line { stroke: #111111; stroke-width: 2; fill: none; }
-      .line-thin { stroke: #111111; stroke-width: 1.5; fill: none; }
+      .entity { fill: #ffffff; stroke: #222222; stroke-width: 2.2; }
+      .relation { fill: #ffffff; stroke: #222222; stroke-width: 2.2; }
+      .attribute { fill: #ffffff; stroke: #222222; stroke-width: 2.0; }
+      .line { stroke: #222222; stroke-width: 2.2; fill: none; }
+      .entity-text { font: 700 22px "SimSun", "Songti SC", serif; fill: #222222; }
+      .relation-text { font: 700 20px "SimSun", "Songti SC", serif; fill: #222222; }
+      .attr-text { font: 18px "SimSun", "Songti SC", serif; fill: #222222; }
+      .card { font: 18px "Times New Roman", serif; fill: #222222; }
+      .title { font: 700 28px "SimSun", "Songti SC", serif; fill: #222222; }
     </style>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#111111" />
-    </marker>
   </defs>
 
-  <rect width="1500" height="1120" fill="#ffffff"/>
-  <text x="750.0" y="38" text-anchor="middle" class="title">图4.5 数据库 E-R 图</text>
-  
-<rect x="70" y="90" width="250" height="190" class="frame"/><line x1="70" y1="132" x2="320" y2="132" class="line-thin"/><text x="195.0" y="118" text-anchor="middle" class="table-title">USERS</text><text x="86" y="160" class="field">PK  id : int</text><text x="86" y="182" class="field">UK  username : string</text><text x="86" y="204" class="field">password_hash : string</text><text x="86" y="226" class="field">name : string</text><text x="86" y="248" class="field">email : string</text><text x="86" y="270" class="field">role : string</text><rect x="410" y="90" width="280" height="220" class="frame"/><line x1="410" y1="132" x2="690" y2="132" class="line-thin"/><text x="550.0" y="118" text-anchor="middle" class="table-title">COURSES</text><text x="426" y="160" class="field">PK  id : int</text><text x="426" y="182" class="field">name : string</text><text x="426" y="204" class="field">UK  code : string</text><text x="426" y="226" class="field">description : text</text><text x="426" y="248" class="field">semester : string</text><text x="426" y="270" class="field">FK  teacher_id : int</text><text x="426" y="292" class="field">is_active : boolean</text><rect x="790" y="90" width="240" height="170" class="frame"/><line x1="790" y1="132" x2="1030" y2="132" class="line-thin"/><text x="910.0" y="118" text-anchor="middle" class="table-title">CLASSES</text><text x="806" y="160" class="field">PK  id : int</text><text x="806" y="182" class="field">name : string</text><text x="806" y="204" class="field">FK  course_id : int</text><text x="806" y="226" class="field">student_count : int</text><text x="806" y="248" class="field">created_at : datetime</text><rect x="1120" y="90" width="270" height="170" class="frame"/><line x1="1120" y1="132" x2="1390" y2="132" class="line-thin"/><text x="1255.0" y="118" text-anchor="middle" class="table-title">STUDENTS</text><text x="1136" y="160" class="field">PK  id : int</text><text x="1136" y="182" class="field">UK  student_no : string</text><text x="1136" y="204" class="field">name : string</text><text x="1136" y="226" class="field">gender : string</text><text x="1136" y="248" class="field">FK  class_id : int</text><rect x="80" y="430" width="280" height="190" class="frame"/><line x1="80" y1="472" x2="360" y2="472" class="line-thin"/><text x="220.0" y="458" text-anchor="middle" class="table-title">ATTENDANCES</text><text x="96" y="500" class="field">PK  id : int</text><text x="96" y="522" class="field">FK  student_id : int</text><text x="96" y="544" class="field">date : date</text><text x="96" y="566" class="field">status : string</text><text x="96" y="588" class="field">FK  course_id : int</text><text x="96" y="610" class="field">remark : string</text><rect x="410" y="430" width="300" height="230" class="frame"/><line x1="410" y1="472" x2="710" y2="472" class="line-thin"/><text x="560.0" y="458" text-anchor="middle" class="table-title">HOMEWORKS</text><text x="426" y="500" class="field">PK  id : int</text><text x="426" y="522" class="field">FK  student_id : int</text><text x="426" y="544" class="field">title : string</text><text x="426" y="566" class="field">score : float</text><text x="426" y="588" class="field">max_score : float</text><text x="426" y="610" class="field">submit_time : datetime</text><text x="426" y="632" class="field">status : string</text><text x="426" y="654" class="field">FK  course_id : int</text><rect x="770" y="430" width="270" height="210" class="frame"/><line x1="770" y1="472" x2="1040" y2="472" class="line-thin"/><text x="905.0" y="458" text-anchor="middle" class="table-title">QUIZZES</text><text x="786" y="500" class="field">PK  id : int</text><text x="786" y="522" class="field">FK  student_id : int</text><text x="786" y="544" class="field">title : string</text><text x="786" y="566" class="field">score : float</text><text x="786" y="588" class="field">max_score : float</text><text x="786" y="610" class="field">duration : int</text><text x="786" y="632" class="field">FK  course_id : int</text><rect x="1100" y="430" width="300" height="190" class="frame"/><line x1="1100" y1="472" x2="1400" y2="472" class="line-thin"/><text x="1250.0" y="458" text-anchor="middle" class="table-title">INTERACTIONS</text><text x="1116" y="500" class="field">PK  id : int</text><text x="1116" y="522" class="field">FK  student_id : int</text><text x="1116" y="544" class="field">type : string</text><text x="1116" y="566" class="field">count : int</text><text x="1116" y="588" class="field">date : date</text><text x="1116" y="610" class="field">FK  course_id : int</text><rect x="520" y="800" width="420" height="250" class="frame"/><line x1="520" y1="842" x2="940" y2="842" class="line-thin"/><text x="730.0" y="828" text-anchor="middle" class="table-title">WARNINGS</text><text x="536" y="870" class="field">PK  id : int</text><text x="536" y="892" class="field">FK  student_id : int</text><text x="536" y="914" class="field">FK  course_id : int</text><text x="536" y="936" class="field">type : string</text><text x="536" y="958" class="field">level : string</text><text x="536" y="980" class="field">reason : text</text><text x="536" y="1002" class="field">metrics : json</text><text x="536" y="1024" class="field">suggestion : text</text><text x="536" y="1046" class="field">status : string</text><text x="536" y="1068" class="field">FK  handled_by : int</text><line x1="320" y1="180" x2="410" y2="180" class="line"/><text x="365" y="168" text-anchor="middle" class="small">1 : N</text><line x1="690" y1="170" x2="790" y2="170" class="line"/><text x="740" y="158" text-anchor="middle" class="small">1 : N</text><line x1="1030" y1="170" x2="1120" y2="170" class="line"/><text x="1075" y="158" text-anchor="middle" class="small">1 : N</text><line x1="1255" y1="260" x2="1255" y2="390" class="line"/><line x1="1255" y1="390" x2="220" y2="390" class="line"/><line x1="220" y1="390" x2="220" y2="430" class="line"/><text x="730" y="378" text-anchor="middle" class="small">STUDENTS 1 : N ATTENDANCES</text><line x1="1255" y1="260" x2="1255" y2="370" class="line"/><line x1="1255" y1="370" x2="560" y2="370" class="line"/><line x1="560" y1="370" x2="560" y2="430" class="line"/><text x="930" y="358" text-anchor="middle" class="small">STUDENTS 1 : N HOMEWORKS</text><line x1="1255" y1="260" x2="1255" y2="350" class="line"/><line x1="1255" y1="350" x2="905" y2="350" class="line"/><line x1="905" y1="350" x2="905" y2="430" class="line"/><text x="1090" y="338" text-anchor="middle" class="small">STUDENTS 1 : N QUIZZES</text><line x1="1255" y1="260" x2="1255" y2="430" class="line"/><text x="1272" y="350" class="small">1 : N</text><line x1="1255" y1="260" x2="1255" y2="760" class="line"/><line x1="1255" y1="760" x2="940" y2="760" class="line"/><text x="1100" y="748" text-anchor="middle" class="small">STUDENTS 1 : N WARNINGS</text><line x1="550" y1="310" x2="550" y2="430" class="line"/><line x1="550" y1="310" x2="220" y2="310" class="line"/><line x1="220" y1="310" x2="220" y2="430" class="line"/><line x1="550" y1="310" x2="905" y2="310" class="line"/><line x1="905" y1="310" x2="905" y2="430" class="line"/><line x1="550" y1="310" x2="1250" y2="310" class="line"/><line x1="1250" y1="310" x2="1250" y2="430" class="line"/><line x1="195" y1="280" x2="720" y2="800" class="line"/><text x="420" y="560" class="small">USERS 1 : N WARNINGS.handled_by</text>
+  <rect width="1600" height="1080" fill="#ffffff"/>
+  <text x="800" y="46" text-anchor="middle" class="title">图4.5 数据库 E-R 图</text>
+
+  <!-- 用户 -->
+  <rect x="120" y="220" width="180" height="92" class="entity"/>
+  <text x="210" y="275" text-anchor="middle" class="entity-text">用户</text>
+  <ellipse cx="85" cy="150" rx="82" ry="42" class="attribute"/>
+  <text x="85" y="158" text-anchor="middle" class="attr-text">用户名</text>
+  <line x1="135" y1="185" x2="170" y2="220" class="line"/>
+  <ellipse cx="270" cy="125" rx="82" ry="42" class="attribute"/>
+  <text x="270" y="133" text-anchor="middle" class="attr-text">姓名</text>
+  <line x1="255" y1="167" x2="240" y2="220" class="line"/>
+  <ellipse cx="90" cy="380" rx="82" ry="42" class="attribute"/>
+  <text x="90" y="388" text-anchor="middle" class="attr-text">角色</text>
+  <line x1="145" y1="350" x2="185" y2="312" class="line"/>
+
+  <!-- 课程 -->
+  <rect x="460" y="220" width="200" height="92" class="entity"/>
+  <text x="560" y="275" text-anchor="middle" class="entity-text">课程</text>
+  <ellipse cx="490" cy="118" rx="96" ry="42" class="attribute"/>
+  <text x="490" y="126" text-anchor="middle" class="attr-text">课程名称</text>
+  <line x1="515" y1="160" x2="535" y2="220" class="line"/>
+  <ellipse cx="650" cy="118" rx="88" ry="42" class="attribute"/>
+  <text x="650" y="126" text-anchor="middle" class="attr-text">课程代码</text>
+  <line x1="630" y1="160" x2="605" y2="220" class="line"/>
+  <ellipse cx="560" cy="388" rx="76" ry="40" class="attribute"/>
+  <text x="560" y="396" text-anchor="middle" class="attr-text">学期</text>
+  <line x1="560" y1="348" x2="560" y2="312" class="line"/>
+
+  <!-- 班级 -->
+  <rect x="840" y="220" width="180" height="92" class="entity"/>
+  <text x="930" y="275" text-anchor="middle" class="entity-text">班级</text>
+  <ellipse cx="948" cy="122" rx="88" ry="42" class="attribute"/>
+  <text x="948" y="130" text-anchor="middle" class="attr-text">班级名称</text>
+  <line x1="944" y1="164" x2="936" y2="220" class="line"/>
+
+  <!-- 学生 -->
+  <rect x="800" y="650" width="180" height="92" class="entity"/>
+  <text x="890" y="705" text-anchor="middle" class="entity-text">学生</text>
+  <ellipse cx="650" cy="585" rx="78" ry="40" class="attribute"/>
+  <text x="650" y="593" text-anchor="middle" class="attr-text">学号</text>
+  <line x1="705" y1="615" x2="800" y2="680" class="line"/>
+  <ellipse cx="650" cy="685" rx="78" ry="40" class="attribute"/>
+  <text x="650" y="693" text-anchor="middle" class="attr-text">姓名</text>
+  <line x1="728" y1="685" x2="800" y2="696" class="line"/>
+  <ellipse cx="650" cy="785" rx="88" ry="40" class="attribute"/>
+  <text x="650" y="793" text-anchor="middle" class="attr-text">性别</text>
+  <line x1="735" y1="775" x2="800" y2="720" class="line"/>
+
+  <!-- 右侧记录实体 -->
+  <rect x="1230" y="120" width="220" height="84" class="entity"/>
+  <text x="1340" y="172" text-anchor="middle" class="entity-text">考勤记录</text>
+  <rect x="1230" y="300" width="220" height="84" class="entity"/>
+  <text x="1340" y="352" text-anchor="middle" class="entity-text">作业记录</text>
+  <rect x="1230" y="648" width="220" height="84" class="entity"/>
+  <text x="1340" y="700" text-anchor="middle" class="entity-text">测验记录</text>
+  <rect x="1230" y="798" width="220" height="84" class="entity"/>
+  <text x="1340" y="850" text-anchor="middle" class="entity-text">互动记录</text>
+  <rect x="1110" y="938" width="220" height="84" class="entity"/>
+  <text x="1220" y="990" text-anchor="middle" class="entity-text">预警记录</text>
+
+  <!-- 关系 -->
+  <polygon points="320,266 380,206 440,266 380,326" class="relation"/>
+  <text x="380" y="274" text-anchor="middle" class="relation-text">开设</text>
+
+  <polygon points="700,266 760,206 820,266 760,326" class="relation"/>
+  <text x="760" y="274" text-anchor="middle" class="relation-text">包含</text>
+
+  <polygon points="830,540 890,480 950,540 890,600" class="relation"/>
+  <text x="890" y="548" text-anchor="middle" class="relation-text">拥有</text>
+
+  <polygon points="1050,162 1110,102 1170,162 1110,222" class="relation"/>
+  <text x="1110" y="170" text-anchor="middle" class="relation-text">记录</text>
+
+  <polygon points="1050,342 1110,282 1170,342 1110,402" class="relation"/>
+  <text x="1110" y="350" text-anchor="middle" class="relation-text">布置</text>
+
+  <polygon points="1060,690 1120,630 1180,690 1120,750" class="relation"/>
+  <text x="1120" y="698" text-anchor="middle" class="relation-text">完成</text>
+
+  <polygon points="1060,840 1120,780 1180,840 1120,900" class="relation"/>
+  <text x="1120" y="848" text-anchor="middle" class="relation-text">参与</text>
+
+  <polygon points="920,980 980,920 1040,980 980,1040" class="relation"/>
+  <text x="980" y="988" text-anchor="middle" class="relation-text">触发</text>
+
+  <!-- 用户-课程 -->
+  <line x1="300" y1="266" x2="320" y2="266" class="line"/>
+  <line x1="440" y1="266" x2="460" y2="266" class="line"/>
+  <text x="306" y="255" class="card">1</text>
+  <text x="444" y="255" class="card">n</text>
+
+  <!-- 课程-班级 -->
+  <line x1="660" y1="266" x2="700" y2="266" class="line"/>
+  <line x1="820" y1="266" x2="840" y2="266" class="line"/>
+  <text x="672" y="255" class="card">1</text>
+  <text x="828" y="255" class="card">n</text>
+
+  <!-- 班级-学生，改为纵向，避免交叉 -->
+  <line x1="930" y1="312" x2="930" y2="480" class="line"/>
+  <line x1="930" y1="600" x2="930" y2="650" class="line"/>
+  <text x="942" y="392" class="card">1</text>
+  <text x="942" y="636" class="card">n</text>
+
+  <!-- 班级-考勤 -->
+  <line x1="1020" y1="250" x2="1050" y2="162" class="line"/>
+  <line x1="1170" y1="162" x2="1230" y2="162" class="line"/>
+  <text x="1038" y="212" class="card">1</text>
+  <text x="1205" y="150" class="card">n</text>
+
+  <!-- 班级-作业 -->
+  <line x1="1020" y1="284" x2="1050" y2="342" class="line"/>
+  <line x1="1170" y1="342" x2="1230" y2="342" class="line"/>
+  <text x="1036" y="300" class="card">1</text>
+  <text x="1205" y="330" class="card">n</text>
+
+  <!-- 学生-测验 -->
+  <line x1="980" y1="696" x2="1060" y2="696" class="line"/>
+  <line x1="1180" y1="690" x2="1230" y2="690" class="line"/>
+  <text x="1012" y="684" class="card">1</text>
+  <text x="1208" y="678" class="card">n</text>
+
+  <!-- 学生-互动 -->
+  <line x1="980" y1="716" x2="1060" y2="840" class="line"/>
+  <line x1="1180" y1="840" x2="1230" y2="840" class="line"/>
+  <text x="1018" y="780" class="card">1</text>
+  <text x="1208" y="828" class="card">n</text>
+
+  <!-- 学生-预警 -->
+  <line x1="900" y1="742" x2="920" y2="980" class="line"/>
+  <line x1="1040" y1="980" x2="1110" y2="980" class="line"/>
+  <text x="910" y="860" class="card">1</text>
+  <text x="1090" y="968" class="card">n</text>
 </svg>
