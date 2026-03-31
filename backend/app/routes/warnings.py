@@ -13,6 +13,7 @@ def _current_role():
 
 
 @warnings_bp.route('/', methods=['GET'])
+@jwt_required()
 def get_warnings():
     """获取预警列表"""
     try:
@@ -155,6 +156,7 @@ def get_warnings():
 
 
 @warnings_bp.route('/<int:warning_id>', methods=['GET'])
+@jwt_required()
 def get_warning_detail(warning_id):
     """获取预警详情"""
     try:
@@ -262,6 +264,7 @@ def process_warning(warning_id):
 
 
 @warnings_bp.route('/<int:warning_id>/history', methods=['GET'])
+@jwt_required()
 def get_warning_history(warning_id):
     """获取预警处理历史"""
     try:

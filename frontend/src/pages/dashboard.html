@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教师仪表盘 - 教学效果监督系统</title>
+    <title id="pageTitle">仪表盘 - 教学效果监督系统</title>
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -143,7 +143,7 @@
         <!-- 顶部导航 -->
         <nav class="navbar navbar-light bg-white rounded shadow-sm mb-4 p-3">
             <div class="container-fluid">
-                <span class="navbar-brand mb-0 h1 fs-5">教师仪表盘</span>
+                <span class="navbar-brand mb-0 h1 fs-5" id="dashboardTitle">仪表盘</span>
                 <div class="d-flex align-items-center gap-2">
                     <button class="btn btn-primary btn-sm" onclick="refreshData()">
                         <i class="bi bi-arrow-clockwise me-1"></i>刷新数据
@@ -163,7 +163,7 @@
                         <i class="bi bi-people-fill"></i>
                     </div>
                     <div class="stat-value" id="studentCount">-</div>
-                    <div class="stat-label">学生总数</div>
+                    <div class="stat-label" id="studentCountLabel">学生总数</div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -191,6 +191,46 @@
                     </div>
                     <div class="stat-value text-danger" id="warningCount">-</div>
                     <div class="stat-label">预警学生</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- admin 专属：教师数 + 课程数 统计行（非 admin 时隐藏） -->
+        <div class="row g-4 mb-4" id="adminStatsRow" style="display:none;">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-person-badge-fill"></i>
+                    </div>
+                    <div class="stat-value" id="teacherCount">-</div>
+                    <div class="stat-label">教师总数</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-secondary bg-opacity-10 text-secondary">
+                        <i class="bi bi-journal-text"></i>
+                    </div>
+                    <div class="stat-value" id="courseCount">-</div>
+                    <div class="stat-label">课程总数</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-purple bg-opacity-10" style="background:rgba(139,92,246,.1);color:#8b5cf6;">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <div class="stat-value" id="classCount">-</div>
+                    <div class="stat-label">班级总数</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-database-fill-check"></i>
+                    </div>
+                    <div class="stat-value" id="interactionCount">-</div>
+                    <div class="stat-label">互动记录数</div>
                 </div>
             </div>
         </div>
@@ -268,12 +308,53 @@
             // 1. 显示用户信息（姓名和角色）
             loadUserInfoToUI();
 
-            // 2. 初始化图表（先用模拟数据渲染，让页面"有内容"）
+            // 2. 根据角色初始化差异化 UI
+            applyRoleSpecificUI();
+
+            // 3. 初始化图表（先用模拟数据渲染，让页面"有内容"）
             initCharts(MOCK.attendanceTrend, MOCK.warningDist);
 
-            // 3. 拉取真实数据，若存在则覆盖
+            // 4. 拉取真实数据，若存在则覆盖
             await refreshData();
         });
+
+        // ── 角色差异化 UI ──────────────────────────────────────────────
+        function applyRoleSpecificUI() {
+            let user = {};
+            try {
+                const str = localStorage.getItem('userInfo');
+                if (str) user = JSON.parse(str);
+            } catch (e) {}
+
+            const role = (user.role || 'teacher').toLowerCase();
+
+            // 动态标题
+            const titleMap = {
+                admin:     '管理员仪表盘',
+                teacher:   '教师仪表盘',
+                assistant: '助教仪表盘'
+            };
+            const title = titleMap[role] || '仪表盘';
+            document.title = title + ' - 教学效果监督系统';
+            const titleEl = document.getElementById('dashboardTitle');
+            if (titleEl) titleEl.textContent = title;
+
+            // admin 专属统计行
+            if (role === 'admin') {
+                const adminRow = document.getElementById('adminStatsRow');
+                if (adminRow) adminRow.style.display = '';
+                // admin 时第一个卡片标签改为"全局学生总数"
+                const lbl = document.getElementById('studentCountLabel');
+                if (lbl) lbl.textContent = '全局学生总数';
+            }
+
+            // assistant：隐藏"生成预警"按钮（只读权限）
+            if (role === 'assistant') {
+                document.querySelectorAll('button[onclick*="checkWarnings"]').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+        }
 
         // ── 刷新全部数据 ──────────────────────────────────────────────
         async function refreshData() {
@@ -294,6 +375,17 @@
                         stats.attendance_rate != null ? stats.attendance_rate + '%' : MOCK.attendanceRate);
                     updateStat('homeworkRate',
                         stats.homework_rate != null ? stats.homework_rate + '%' : MOCK.homeworkRate);
+
+                    // ── admin 专属卡片 ──
+                    let user = {};
+                    try { user = JSON.parse(localStorage.getItem('userInfo') || '{}'); } catch(e){}
+                    const role = (user.role || 'teacher').toLowerCase();
+                    if (role === 'admin') {
+                        updateStat('teacherCount',     stats.users     ?? '-');
+                        updateStat('courseCount',      stats.courses   ?? '-');
+                        updateStat('classCount',       stats.classes   ?? '-');
+                        updateStat('interactionCount', stats.interactions ?? '-');
+                    }
 
                     // ── 预警分布图：有真实数据则覆盖模拟值 ──
                     const dist = stats.warning_distribution;
