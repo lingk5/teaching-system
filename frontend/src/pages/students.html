@@ -149,7 +149,7 @@
             display: flex; align-items: center; justify-content: center;
         }
         .metric-cards {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 24px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 24px;
         }
         .metric-card {
             background: #f8fafc; padding: 15px; border-radius: 10px; text-align: center;
@@ -744,10 +744,21 @@
                 const metrics = data.metrics || {};
                 const coverage = data.coverage || {};
                 const metricValue = (value, suffix = '') => value == null ? '暂无' : `${value}${suffix}`;
+                const coverageLabelMap = {
+                    attendance: '出勤',
+                    homework: '作业',
+                    quiz: '测验',
+                    final_exam: '期末',
+                    interaction: '互动'
+                };
+                const formatCoverage = (items) => (items || []).length
+                    ? items.map((item) => coverageLabelMap[item] || item).join('、')
+                    : '无';
                 const radarMetrics = [
                     metrics.attendance ?? 0,
                     metrics.homework ?? 0,
                     metrics.quiz ?? 0,
+                    metrics.final_exam ?? 0,
                     metrics.interaction ?? 0,
                     s.score ?? 0
                 ];
@@ -779,6 +790,10 @@
                             <div class="metric-lbl">测验得分</div>
                         </div>
                         <div class="metric-card">
+                            <div class="metric-val" style="color: #7c3aed;">${metricValue(metrics.final_exam)}</div>
+                            <div class="metric-lbl">期末得分</div>
+                        </div>
+                        <div class="metric-card">
                             <div class="metric-val text-purple" style="color: #8b5cf6;">${metricValue(metrics.interaction)}</div>
                             <div class="metric-lbl">互动得分</div>
                         </div>
@@ -786,9 +801,9 @@
 
                     <div class="alert alert-light border mb-4">
                         <div class="fw-semibold mb-2">覆盖率</div>
-                        <div class="small text-muted">已覆盖 ${coverage.covered_count ?? 0}/${coverage.total_count ?? 4} 项</div>
-                        <div class="small text-muted mt-1">已覆盖指标：${(coverage.covered_fields || []).join('、') || '无'}</div>
-                        <div class="small text-muted mt-1">缺失指标：${(coverage.missing_fields || []).join('、') || '无'}</div>
+                        <div class="small text-muted">已覆盖 ${coverage.covered_count ?? 0}/${coverage.total_count ?? 5} 项</div>
+                        <div class="small text-muted mt-1">已覆盖指标：${formatCoverage(coverage.covered_fields)}</div>
+                        <div class="small text-muted mt-1">缺失指标：${formatCoverage(coverage.missing_fields)}</div>
                     </div>
 
                     <div class="row">
@@ -809,7 +824,7 @@
                     new Chart(document.getElementById('detailRadar'), {
                         type: 'radar',
                         data: {
-                            labels: ['出勤', '作业', '测验', '互动', '综合'],
+                            labels: ['出勤', '作业', '测验', '期末', '互动', '综合'],
                             datasets: [{
                                 label: '个人能力',
                                 data: radarMetrics,

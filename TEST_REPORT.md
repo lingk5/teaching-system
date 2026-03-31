@@ -3,14 +3,15 @@
 **测试日期:** 2026-03-31
 **测试人员:** Codex (GPT-5)
 **测试方式:** 本地自动化回归与源码级验证
-**代码基线:** 当前工作区（含资源范围收口、助教指派、覆盖率评分规则、前端真实数据渲染）
+**代码基线:** 当前工作区（含资源范围收口、助教指派、覆盖率评分规则、期末成绩独立建模、前端真实数据渲染）
 
 ---
 
 ## 📋 验证范围
 
 - 后端权限与范围回归：`backend/tests/test_role_permissions.py`、`backend/tests/test_scoped_access_and_assignments.py`
-- 预警覆盖率规则回归：`backend/tests/test_warning_coverage_rules.py`、`backend/tests/test_weight_config.py`
+- 预警覆盖率与权重规则回归：`backend/tests/test_warning_coverage_rules.py`、`backend/tests/test_weight_config.py`
+- 期末成绩独立链路回归：`backend/tests/test_final_score_integration.py`
 - UI/文档回归：`backend/tests/test_rbac_ui_regressions.py`
 - 前端角色矩阵与页面完整性回归：`frontend/tests/auth-role.test.mjs`、`frontend/tests/page-data-integrity.test.mjs`
 - 语法与补丁校验：`python3 -m compileall`、`git diff --check`
@@ -57,20 +58,19 @@
 
 | 测试项 | 状态 | 详情 |
 |--------|------|------|
-| 后端 `unittest` | ✅ 通过 | 共 29 条测试全部通过 |
-| 前端 `node:test` | ✅ 通过 | 共 6 条测试全部通过 |
+| 后端 `unittest` | ✅ 通过 | 共 32 条测试全部通过 |
+| 前端 `node:test` | ✅ 通过 | 共 7 条测试全部通过 |
 | Python 编译检查 | ✅ 通过 | `python3 -m compileall backend/app backend/tests` 通过 |
 | Patch 校验 | ✅ 通过 | `git diff --check` 通过 |
 
 **验证要点:**
-- ✅ 当前仓库已经具备覆盖 RBAC、资源范围、助教指派、覆盖率预警规则的回归基线
+- ✅ 当前仓库已经具备覆盖 RBAC、资源范围、助教指派、覆盖率预警规则与期末成绩独立链路的回归基线
 - ✅ 可在论文中表述为“已建立基础自动化回归验证机制”
 
 ---
 
 ## ⚠️ 当前仍未完全完成的部分
 
-- 期末成绩仍未独立建模，当前继续复用 `quiz`
 - 学生搜索、预警筛选、分页仍需统一后端查询规范
 - 预警引擎仍为全量扫描，数据量扩大后会有性能压力
 
@@ -96,9 +96,9 @@
 3. 对数据库现状应统一表述为“当前代码默认使用 MySQL，ORM 保留迁移能力”，不要再写成 SQLite 当前基线。
 
 ### 后续优化
-1. 为期末成绩建立独立模型与独立导入链路。
-2. 将学生搜索、预警筛选、课程统计统一到后端查询规范。
-3. 为预警生成补缓存、增量刷新或定时任务。
+1. 将学生搜索、预警筛选、课程统计统一到后端查询规范。
+2. 为预警生成补缓存、增量刷新或定时任务。
+3. 扩展期末成绩相关统计图表与查询维度。
 4. 扩展自动化回归到导入、导出、课程管理全链路。
 
 ---

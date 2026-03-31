@@ -106,7 +106,7 @@
         .profile-info h4 { margin: 0 0 8px 0; color: #1e293b; }
         .profile-info p { margin: 0; color: #64748b; }
         .metric-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px; margin-bottom: 24px;
         }
         .metric-item {
             background: #f8fafc; padding: 16px; border-radius: 12px; text-align: center;
@@ -332,7 +332,7 @@
             radarChart = new Chart(document.getElementById('radarChart'), {
                 type: 'radar',
                 data: {
-                    labels: ['出勤', '作业', '测验', '互动'],
+                    labels: ['出勤', '作业', '测验', '期末', '互动'],
                     datasets: [{
                         label: '班级均值',
                         data: [],
@@ -450,12 +450,13 @@
         }
 
         function updateRadarChart(profile) {
-            const values = Array.isArray(profile) && profile.length
-                ? profile
+            const hasProfileData = Array.isArray(profile) && profile.some((value) => value != null);
+            const values = hasProfileData
+                ? profile.map((value) => value ?? 0)
                 : [];
             radarChart.data.datasets[0].data = values;
             radarChart.update();
-            setChartState('radarChartState', values.length ? '' : '暂无数据');
+            setChartState('radarChartState', hasProfileData ? '' : '暂无数据');
         }
 
         function updateTrendChart(trend) {
@@ -478,7 +479,7 @@
         function renderStudentList(students) {
             const container = document.getElementById('studentRanking');
             if (!students.length) {
-                container.innerHTML = '<div class="p-4 text-center text-muted">暂无数据，请先导入该课程的考勤、作业、测验或互动数据。</div>';
+                container.innerHTML = '<div class="p-4 text-center text-muted">暂无数据，请先导入该课程的考勤、作业、测验、期末或互动数据。</div>';
                 return;
             }
 
@@ -486,7 +487,7 @@
                 const [tagClass, tagLabel] = getScoreTag(student.score || 0);
                 const coverage = student.coverage || {};
                 const coveredCount = coverage.covered_count ?? 0;
-                const totalCount = coverage.total_count ?? 4;
+                const totalCount = coverage.total_count ?? 5;
                 return `
                     <div class="student-item" onclick="showStudentDetail(${student.id})">
                         <div class="d-flex align-items-center justify-content-center">
@@ -522,7 +523,14 @@
         }
 
         function formatCoverageList(items) {
-            return items && items.length ? items.join('、') : '无';
+            const labelMap = {
+                attendance: '出勤',
+                homework: '作业',
+                quiz: '测验',
+                final_exam: '期末',
+                interaction: '互动'
+            };
+            return items && items.length ? items.map((item) => labelMap[item] || item).join('、') : '无';
         }
 
         async function showStudentDetail(studentId) {
@@ -566,13 +574,17 @@
                             <div class="metric-label">测验得分</div>
                         </div>
                         <div class="metric-item">
+                            <div class="metric-value" style="color: #7c3aed;">${formatMetric(metrics.final_exam)}</div>
+                            <div class="metric-label">期末得分</div>
+                        </div>
+                        <div class="metric-item">
                             <div class="metric-value text-info">${formatMetric(metrics.interaction)}</div>
                             <div class="metric-label">课堂互动</div>
                         </div>
                     </div>
                     <div class="alert alert-light border">
                         <div class="fw-semibold mb-2">覆盖率</div>
-                        <div class="small text-muted">已覆盖 ${coverage.covered_count ?? 0}/${coverage.total_count ?? 4} 项</div>
+                        <div class="small text-muted">已覆盖 ${coverage.covered_count ?? 0}/${coverage.total_count ?? 5} 项</div>
                         <div class="small text-muted mt-1">已覆盖指标：${formatCoverageList(coverage.covered_fields)}</div>
                         <div class="small text-muted mt-1">缺失指标：${formatCoverageList(coverage.missing_fields)}</div>
                     </div>

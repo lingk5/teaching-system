@@ -66,6 +66,7 @@ class Student(db.Model):
     attendances = db.relationship('Attendance', backref='student', lazy=True)
     homeworks = db.relationship('Homework', backref='student', lazy=True)
     quizzes = db.relationship('Quiz', backref='student', lazy=True)
+    final_scores = db.relationship('FinalScore', backref='student', lazy=True)
     interactions = db.relationship('Interaction', backref='student', lazy=True)
     warnings = db.relationship('Warning', backref='student', lazy=True)
 

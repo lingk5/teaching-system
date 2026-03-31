@@ -15,7 +15,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 import traceback
 
 from ..models import db, Student, Course, Class
-from ..models.data import Attendance, Homework, Quiz, Interaction
+from ..models.data import Attendance, Homework, Quiz, FinalScore, Interaction
 from ..models.warning import Warning
 from ..services.weight_config import WeightConfig
 from ..utils.permissions import current_user_can, accessible_course_ids, can_access_course
@@ -178,8 +178,6 @@ def export_scores():
         if course_id and not can_access_course(course_id):
             return jsonify({'success': False, 'message': '无权导出该课程数据'}), 403
 
-        # 1. 计算考勤平均分 (Attendance表没有score字段，需要计算)
-        # 规则: present=100, late=80, leave=60, absent=0
         attendance_score_case = case(
             (Attendance.status == 'present', 100),
             (Attendance.status == 'late', 80),
@@ -187,8 +185,72 @@ def export_scores():
             (Attendance.status == 'absent', 0),
             else_=0
         )
-        
-        # 构建基础查询
+
+        attendance_query = db.session.query(
+            Attendance.student_id.label('student_id'),
+            Attendance.course_id.label('course_id'),
+            func.avg(attendance_score_case).label('attendance_avg')
+        )
+        if start_date:
+            attendance_query = attendance_query.filter(Attendance.date >= start_date)
+        if end_date:
+            attendance_query = attendance_query.filter(Attendance.date <= end_date)
+        attendance_subquery = attendance_query.group_by(
+            Attendance.student_id, Attendance.course_id
+        ).subquery()
+
+        homework_query = db.session.query(
+            Homework.student_id.label('student_id'),
+            Homework.course_id.label('course_id'),
+            func.avg(Homework.score / func.nullif(Homework.max_score, 0) * 100).label('homework_avg')
+        )
+        if start_date:
+            homework_query = homework_query.filter(Homework.created_at >= start_date)
+        if end_date:
+            homework_query = homework_query.filter(Homework.created_at <= end_date)
+        homework_subquery = homework_query.group_by(
+            Homework.student_id, Homework.course_id
+        ).subquery()
+
+        quiz_query = db.session.query(
+            Quiz.student_id.label('student_id'),
+            Quiz.course_id.label('course_id'),
+            func.avg(Quiz.score / func.nullif(Quiz.max_score, 0) * 100).label('quiz_avg')
+        )
+        if start_date:
+            quiz_query = quiz_query.filter(Quiz.created_at >= start_date)
+        if end_date:
+            quiz_query = quiz_query.filter(Quiz.created_at <= end_date)
+        quiz_subquery = quiz_query.group_by(
+            Quiz.student_id, Quiz.course_id
+        ).subquery()
+
+        final_exam_query = db.session.query(
+            FinalScore.student_id.label('student_id'),
+            FinalScore.course_id.label('course_id'),
+            func.avg(FinalScore.score / func.nullif(FinalScore.max_score, 0) * 100).label('final_exam_avg')
+        )
+        if start_date:
+            final_exam_query = final_exam_query.filter(FinalScore.created_at >= start_date)
+        if end_date:
+            final_exam_query = final_exam_query.filter(FinalScore.created_at <= end_date)
+        final_exam_subquery = final_exam_query.group_by(
+            FinalScore.student_id, FinalScore.course_id
+        ).subquery()
+
+        interaction_query = db.session.query(
+            Interaction.student_id.label('student_id'),
+            Interaction.course_id.label('course_id'),
+            func.sum(Interaction.count).label('interaction_total')
+        )
+        if start_date:
+            interaction_query = interaction_query.filter(Interaction.date >= start_date)
+        if end_date:
+            interaction_query = interaction_query.filter(Interaction.date <= end_date)
+        interaction_subquery = interaction_query.group_by(
+            Interaction.student_id, Interaction.course_id
+        ).subquery()
+
         query = db.session.query(
             Student.id.label('student_id'),
             Student.student_no,
@@ -196,36 +258,55 @@ def export_scores():
             Course.id.label('course_id'),
             Course.name.label('course_name'),
             Class.name.label('class_name'),
-            func.avg(attendance_score_case).label('attendance_avg'),
-            func.avg(Homework.score).label('homework_avg'),
-            func.avg(Quiz.score).label('quiz_avg')
+            attendance_subquery.c.attendance_avg,
+            homework_subquery.c.homework_avg,
+            quiz_subquery.c.quiz_avg,
+            final_exam_subquery.c.final_exam_avg,
+            interaction_subquery.c.interaction_total,
         ).join(
             Class, Student.class_id == Class.id
         ).join(
             Course, Class.course_id == Course.id
         ).outerjoin(
-            Attendance, and_(Attendance.student_id == Student.id, Attendance.course_id == Course.id)
+            attendance_subquery,
+            and_(
+                attendance_subquery.c.student_id == Student.id,
+                attendance_subquery.c.course_id == Course.id,
+            )
         ).outerjoin(
-            Homework, and_(Homework.student_id == Student.id, Homework.course_id == Course.id)
+            homework_subquery,
+            and_(
+                homework_subquery.c.student_id == Student.id,
+                homework_subquery.c.course_id == Course.id,
+            )
         ).outerjoin(
-            Quiz, and_(Quiz.student_id == Student.id, Quiz.course_id == Course.id)
+            quiz_subquery,
+            and_(
+                quiz_subquery.c.student_id == Student.id,
+                quiz_subquery.c.course_id == Course.id,
+            )
+        ).outerjoin(
+            final_exam_subquery,
+            and_(
+                final_exam_subquery.c.student_id == Student.id,
+                final_exam_subquery.c.course_id == Course.id,
+            )
+        ).outerjoin(
+            interaction_subquery,
+            and_(
+                interaction_subquery.c.student_id == Student.id,
+                interaction_subquery.c.course_id == Course.id,
+            )
+        ).filter(
+            Course.id.in_(allowed_course_ids)
         )
-
-        query = query.filter(Course.id.in_(allowed_course_ids))
 
         if course_id:
             query = query.filter(Course.id == course_id)
         if class_id:
             query = query.filter(Student.class_id == class_id)
-        
-        # 日期筛选 - 这里假设筛选的是作业提交时间，或者考勤时间
-        # 由于是聚合查询，简单的日期筛选比较复杂，这里暂只对作业时间筛选
-        if start_date:
-            query = query.filter(Homework.created_at >= start_date)
-        if end_date:
-            query = query.filter(Homework.created_at <= end_date)
 
-        results = query.group_by(Student.id, Course.id).all()
+        results = query.order_by(Course.name.asc(), Class.name.asc(), Student.student_no.asc()).all()
 
         if not results:
             return jsonify({'success': False, 'message': '无成绩数据可导出'}), 404
@@ -234,20 +315,17 @@ def export_scores():
         col_titles = WeightConfig.get_score_column_titles()
         data = []
         for row in results:
-            # 各维度原始得分（0-100）
-            attendance  = float(row.attendance_avg) if row.attendance_avg is not None else 0.0
-            homework    = float(row.homework_avg)   if row.homework_avg   is not None else 0.0
-            quiz        = float(row.quiz_avg)       if row.quiz_avg       is not None else 0.0
-            interaction_total = db.session.query(func.sum(Interaction.count)).filter(
-                Interaction.student_id == row.student_id,
-                Interaction.course_id == row.course_id
-            ).scalar()
-            interaction = min(interaction_total * 10, 100) if interaction_total is not None else None
+            attendance = float(row.attendance_avg) if row.attendance_avg is not None else None
+            homework = float(row.homework_avg) if row.homework_avg is not None else None
+            quiz = float(row.quiz_avg) if row.quiz_avg is not None else None
+            final_exam = float(row.final_exam_avg) if row.final_exam_avg is not None else None
+            interaction = min(float(row.interaction_total) * 10, 100) if row.interaction_total is not None else None
 
             metrics = {
-                'attendance':  attendance,
-                'homework':    homework,
-                'quiz':        quiz,
+                'attendance': attendance,
+                'homework': homework,
+                'quiz': quiz,
+                'final_exam': final_exam,
                 'interaction': interaction,
             }
             score_details = WeightConfig.calculate_score_details(metrics)
@@ -270,10 +348,11 @@ def export_scores():
                 '姓名':                    row.name,
                 '班级':                    row.class_name,
                 '课程':                    row.course_name,
-                col_titles['attendance']:  round(attendance, 1),
-                col_titles['homework']:    round(homework, 1),
-                col_titles['quiz']:        round(quiz, 1),
-                col_titles['interaction']: round(interaction, 1),
+                col_titles['attendance']:  round(attendance, 1) if attendance is not None else '',
+                col_titles['homework']:    round(homework, 1) if homework is not None else '',
+                col_titles['quiz']:        round(quiz, 1) if quiz is not None else '',
+                col_titles['final_exam']:  round(final_exam, 1) if final_exam is not None else '',
+                col_titles['interaction']: round(interaction, 1) if interaction is not None else '',
                 '综合分':                  round(composite, 1),
                 '等级':                    grade,
             })
@@ -283,7 +362,8 @@ def export_scores():
 
         # 生成文件名
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        course_name = Course.query.get(course_id).name if course_id else "全部课程"
+        course = db.session.get(Course, course_id) if course_id else None
+        course_name = course.name if course else "全部课程"
         filename = f"成绩报表_{course_name}_{timestamp}.xlsx"
 
         # 创建Excel
@@ -588,20 +668,20 @@ def download_template(type):
 
         elif type == 'scores':
             df = pd.DataFrame({
-                'student_no': ['2024001', '2024002'],
-                'title': ['期中作业', '第一次测验'],
-                'score': [85, 90],
-                'max_score': [100, 100],
-                'type': ['homework', 'quiz'],
-                'duration': ['', 60] 
+                'student_no': ['2024001', '2024002', '2024003'],
+                'title': ['期中作业', '第一次测验', 'Python程序设计期末'],
+                'score': [85, 90, 88],
+                'max_score': [100, 100, 100],
+                'type': ['homework', 'quiz', 'final_exam'],
+                'duration': ['', 60, 120]
             })
             instructions = [
                 'student_no: 学号 (必填)',
                 'title: 标题 (必填)',
                 'score: 分数 (必填)',
                 'max_score: 满分 (默认为100)',
-                'type: 类型 (homework/quiz，默认为homework)',
-                'duration: 测验时长(分钟)，仅type为quiz时有效'
+                'type: 类型 (homework/quiz/final_exam，默认为homework)',
+                'duration: 时长(分钟)，type 为 quiz/final_exam 时有效'
             ]
 
         elif type == 'attendance':

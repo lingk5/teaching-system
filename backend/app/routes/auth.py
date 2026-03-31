@@ -109,7 +109,7 @@ def login():
 def get_current_user():
     """获取当前登录用户信息"""
     current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+    user = db.session.get(User, current_user_id)
     if not user:
         return jsonify({'success': False, 'message': '用户不存在'}), 404
 
@@ -178,7 +178,7 @@ def update_user(user_id):
         return jsonify({'success': False, 'message': '仅管理员可更新用户'}), 403
 
     data = request.get_json() or {}
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({'success': False, 'message': '用户不存在'}), 404
 

@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime
 from ..models import db
 from ..models.course import Student, Class
-from ..models.data import Attendance, Homework, Quiz, Interaction
+from ..models.data import Attendance, Homework, Quiz, FinalScore, Interaction
 
 
 class ImportHelper:
@@ -311,6 +311,39 @@ class QuizImporter(BaseImporter):
             course_id=self.course_id
         )
         db.session.add(quiz)
+        self.success_count += 1
+
+
+class FinalScoreImporter(BaseImporter):
+    """期末成绩导入器"""
+
+    REQUIRED_COLS = ['student_no', 'title']
+
+    def __init__(self, df, course_id):
+        super().__init__(df, course_id, FinalScore)
+
+    def validate_data(self):
+        return self.helper.validate_required_columns(self.df, self.REQUIRED_COLS)
+
+    def process_row(self, index, row):
+        student_no = self.helper.clean_string(row['student_no'])
+        student = self.helper.get_student_by_no(student_no)
+
+        if not student:
+            self.errors.append(f'第{index + 2}行：学号{student_no}不存在')
+            return
+
+        title = self.helper.clean_string(row['title']) or '期末考试'
+
+        final_score = FinalScore(
+            student_id=student.id,
+            title=title,
+            score=self.helper.clean_float(row.get('score')),
+            max_score=self.helper.clean_float(row.get('max_score', 100), 100),
+            duration=self.helper.clean_int(row.get('duration')),
+            course_id=self.course_id
+        )
+        db.session.add(final_score)
         self.success_count += 1
 
 

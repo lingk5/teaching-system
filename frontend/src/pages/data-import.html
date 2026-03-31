@@ -172,7 +172,7 @@
                                     <option value="attendance">考勤数据</option>
                                     <option value="homework">平时作业成绩</option>
                                     <option value="quiz">小测验/月考</option>
-                                    <option value="final">期末考试成绩</option>
+                                    <option value="final_exam">期末考试成绩</option>
                                 </select>
                             </div>
                         </div>
@@ -207,7 +207,7 @@
             // 监听类型变化，显示期末提示
             document.getElementById('dataType').addEventListener('change', function(e) {
                 const tip = document.getElementById('finalTip');
-                if (e.target.value === 'final') {
+                if (e.target.value === 'final_exam') {
                     tip.style.display = 'block';
                 } else {
                     tip.style.display = 'none';
@@ -260,17 +260,14 @@
             formData.append('file', file);
             formData.append('course_id', courseId);
 
-            // 特殊处理期末成绩：后端其实用的是 quiz 接口，但我们可以加一个参数让后端知道
-            // 或者简单点，我们直接调用 quiz 接口，但告诉用户这是期末
-            // 这里我们做一个小 trick：如果是 final，我们仍然调用 quiz 接口，
-            // 但后端目前没有区分 final 和 quiz 的逻辑。
-            // 为了完美，我们应该修改后端。但为了快速实现，我们暂时都传给 quiz 接口
-            // 只要 excel 里标题写了 "期末考试"，预警引擎就能识别。
-
-            let apiPath = `/data/import/${dataType}`;
-            if (dataType === 'final') {
-                apiPath = '/data/import/quiz'; // 复用测验接口
-            }
+            const importPathMap = {
+                attendance: '/data/import/attendance',
+                homework: '/data/import/homework',
+                quiz: '/data/import/quiz',
+                final_exam: '/data/import/final_exam',
+                students: '/data/import/students'
+            };
+            const apiPath = importPathMap[dataType] || `/data/import/${dataType}`;
 
             // UI: 显示加载中
             resultArea.style.display = 'block';
@@ -320,24 +317,20 @@
 
         // 动态更新模板下载链接
         document.getElementById('dataType')?.addEventListener('change', (e) => {
-            let type = e.target.value;
-            // 期末和测验共用模板
-            if (type === 'final') type = 'quiz';
-
+            const type = e.target.value;
             const link = document.getElementById('templateLink');
             link.href = `/api/data/templates/${type}`;
             const textMap = {
                 'attendance': '考勤',
                 'homework': '作业',
                 'quiz': '测验',
-                'final': '测验(期末)'
+                'final_exam': '期末考试'
             };
             link.textContent = `下载${textMap[type] || type}模板`;
         });
 
         function downloadTemplate(event) {
-            let type = document.getElementById('dataType').value;
-            if (type === 'final') type = 'quiz';
+            const type = document.getElementById('dataType').value;
             event.target.href = `/api/data/templates/${type}`;
         }
 

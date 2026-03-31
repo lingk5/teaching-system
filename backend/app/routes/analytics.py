@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
-from sqlalchemy import func, case
+from sqlalchemy import func
 from ..models import db, Student, Class
-from ..models.data import Attendance, Homework, Quiz, Interaction
+from ..models.data import Attendance, Homework, Quiz, FinalScore, Interaction
 from ..services.warning_engine import WarningEngine
 from ..services.weight_config import WeightConfig
 from ..utils.permissions import (
@@ -13,6 +13,8 @@ from ..utils.permissions import (
 )
 
 analytics_bp = Blueprint('analytics', __name__)
+
+PROFILE_KEYS = ('attendance', 'homework', 'quiz', 'final_exam', 'interaction')
 
 @analytics_bp.route('/course/<int:course_id>/overview')
 @jwt_required()
@@ -44,6 +46,7 @@ def course_overview(course_id):
                 'attendance_rate': 0,
                 'homework_completion': 0,
                 'avg_quiz_score': 0,
+                'avg_final_exam_score': 0,
                 'score_distribution': [0, 0, 0, 0, 0],
                 'class_profile': [],
                 'trend': {'labels': [], 'class_avg': [], 'grade_avg': []},
@@ -63,6 +66,10 @@ def course_overview(course_id):
 
     # 计算平均测验分
     avg_quiz_score = db.session.query(func.avg(Quiz.score)).filter(Quiz.student_id.in_(student_ids), Quiz.course_id == course_id).scalar() or 0
+    avg_final_exam_score = db.session.query(func.avg(FinalScore.score)).filter(
+        FinalScore.student_id.in_(student_ids),
+        FinalScore.course_id == course_id
+    ).scalar() or 0
 
     engine = WarningEngine(course_id)
     student_rows = []
@@ -90,14 +97,16 @@ def course_overview(course_id):
             score_distribution[4] += 1
 
     class_profile = []
-    for key in ('attendance', 'homework', 'quiz', 'interaction'):
+    for key in PROFILE_KEYS:
         values = [
             row['metrics'][key]
             for row in student_rows
             if row['metrics'][key] is not None
         ]
-        if values:
-            class_profile.append(round(sum(values) / len(values), 1))
+        class_profile.append(round(sum(values) / len(values), 1) if values else None)
+
+    if not any(value is not None for value in class_profile):
+        class_profile = []
 
     # 4. 学习趋势 (最近5次测验的平均分)
     recent_quizzes = db.session.query(
@@ -130,6 +139,7 @@ def course_overview(course_id):
             'attendance_rate': round(attendance_rate, 1),
             'homework_completion': round(homework_completion, 1),
             'avg_quiz_score': round(float(avg_quiz_score), 1),
+            'avg_final_exam_score': round(float(avg_final_exam_score), 1),
             'score_distribution': score_distribution,
             'class_profile': class_profile,
             'trend': {
@@ -175,6 +185,7 @@ def student_profile(course_id, student_id):
                 'attendance': round(metrics['attendance'], 1) if metrics['attendance'] is not None else None,
                 'homework': round(metrics['homework'], 1) if metrics['homework'] is not None else None,
                 'quiz': round(metrics['quiz'], 1) if metrics['quiz'] is not None else None,
+                'final_exam': round(metrics['final_exam'], 1) if metrics['final_exam'] is not None else None,
                 'interaction': round(metrics['interaction'], 1) if metrics['interaction'] is not None else None,
             },
             'coverage': score_details['coverage'],

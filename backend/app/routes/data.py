@@ -1,11 +1,11 @@
 from flask import Blueprint, request, jsonify, send_from_directory
 from flask_jwt_extended import jwt_required
 from ..models import db
-from ..models.data import Attendance, Homework, Quiz, Interaction
+from ..models.data import Attendance, Homework, Quiz, FinalScore, Interaction
 from ..models.course import Student, Class, Course
 from ..utils.import_helpers import (
     ImportHelper, StudentImporter, AttendanceImporter, 
-    HomeworkImporter, QuizImporter, InteractionImporter
+    HomeworkImporter, QuizImporter, FinalScoreImporter, InteractionImporter
 )
 from ..utils.permissions import current_user_can, can_access_course, current_role, current_user_id
 import pandas as pd
@@ -115,6 +115,31 @@ def add_interaction():
     return jsonify({'success': True, 'message': '互动记录添加成功'}), 201
 
 
+@data_bp.route('/final_exam', methods=['POST'])
+@jwt_required()
+def add_final_exam():
+    """单条添加期末成绩记录"""
+    if not current_user_can('import_data'):
+        return jsonify({'success': False, 'message': '助教无权限写入数据'}), 403
+
+    data = request.get_json()
+    if not can_access_course(data.get('course_id')):
+        return jsonify({'success': False, 'message': '无权写入该课程数据'}), 403
+
+    record = FinalScore(
+        student_id=data['student_id'],
+        title=data.get('title') or '期末考试',
+        score=data.get('score'),
+        max_score=data.get('max_score', 100),
+        duration=data.get('duration'),
+        course_id=data['course_id']
+    )
+    db.session.add(record)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': '期末成绩记录添加成功'}), 201
+
+
 # ================ 批量导入接口（使用重构后的导入器） ================
 
 @data_bp.route('/import/<string:data_type>', methods=['POST'])
@@ -159,7 +184,7 @@ def import_data(data_type):
 
         # 数据清洗：去除空行，去除前后空格
         df = df.dropna(how='all')
-        df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
+        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
         # 根据类型处理
         if data_type == 'students':
@@ -172,12 +197,10 @@ def import_data(data_type):
             importer = HomeworkImporter(df, course_id)
             result = importer.import_data()
         elif data_type == 'quiz':
-            # 普通测验，type='quiz'
             importer = QuizImporter(df, course_id, quiz_type='quiz')
             result = importer.import_data()
         elif data_type == 'final_exam':
-            # 期末考试，复用 Quiz 表，type='final'
-            importer = QuizImporter(df, course_id, quiz_type='final')
+            importer = FinalScoreImporter(df, course_id)
             result = importer.import_data()
         elif data_type == 'interactions':
             importer = InteractionImporter(df, course_id)
@@ -324,7 +347,7 @@ def import_scores_api():
 
         # 数据清洗
         df = df.dropna(how='all')
-        df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
+        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
         # 验证必需列
         required_cols = ['student_no', 'title', 'score']
@@ -391,7 +414,7 @@ def import_courses_api():
 
         # 数据清洗
         df = df.dropna(how='all')
-        df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
+        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
         # 验证必需列
         required_cols = ['name', 'code']

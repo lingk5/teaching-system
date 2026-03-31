@@ -17,17 +17,18 @@ class TestWeightConfigConstants:
         total = sum(WeightConfig.COMPREHENSIVE_WEIGHTS.values())
         assert abs(total - 1.0) < 1e-9, f"权重总和应为1.0，实际为{total}"
 
-    def test_weights_have_four_dimensions(self):
-        """权重必须包含四个维度"""
+    def test_weights_have_five_dimensions(self):
+        """权重必须包含五个维度"""
         keys = set(WeightConfig.COMPREHENSIVE_WEIGHTS.keys())
-        assert keys == {'attendance', 'homework', 'quiz', 'interaction'}
+        assert keys == {'attendance', 'homework', 'quiz', 'final_exam', 'interaction'}
 
     def test_weights_values(self):
-        """验证具体权重值 30/30/30/10"""
+        """验证具体权重值 20/20/20/30/10"""
         w = WeightConfig.COMPREHENSIVE_WEIGHTS
-        assert w['attendance'] == 0.3
-        assert w['homework'] == 0.3
-        assert w['quiz'] == 0.3
+        assert w['attendance'] == 0.2
+        assert w['homework'] == 0.2
+        assert w['quiz'] == 0.2
+        assert w['final_exam'] == 0.3
         assert w['interaction'] == 0.1
 
     def test_thresholds_exist(self):
@@ -42,27 +43,27 @@ class TestCalculateScore:
 
     def test_full_score(self):
         """满分情况：所有维度100分 → 综合分100"""
-        metrics = {'attendance': 100, 'homework': 100, 'quiz': 100, 'interaction': 100}
+        metrics = {'attendance': 100, 'homework': 100, 'quiz': 100, 'final_exam': 100, 'interaction': 100}
         result = WeightConfig.calculate_comprehensive_score(metrics)
         assert abs(result - 100.0) < 1e-9
 
     def test_zero_score(self):
         """零分情况：所有维度0分 → 综合分0"""
-        metrics = {'attendance': 0, 'homework': 0, 'quiz': 0, 'interaction': 0}
+        metrics = {'attendance': 0, 'homework': 0, 'quiz': 0, 'final_exam': 0, 'interaction': 0}
         result = WeightConfig.calculate_comprehensive_score(metrics)
         assert result == 0.0
 
     def test_mixed_score(self):
         """混合分数验证计算公式"""
-        metrics = {'attendance': 80, 'homework': 70, 'quiz': 90, 'interaction': 60}
-        expected = 80 * 0.3 + 70 * 0.3 + 90 * 0.3 + 60 * 0.1
+        metrics = {'attendance': 80, 'homework': 70, 'quiz': 90, 'final_exam': 85, 'interaction': 60}
+        expected = 80 * 0.2 + 70 * 0.2 + 90 * 0.2 + 85 * 0.3 + 60 * 0.1
         result = WeightConfig.calculate_comprehensive_score(metrics)
         assert abs(result - expected) < 1e-9
 
     def test_missing_key_raises_error(self):
         """缺少必要字段时必须抛出 ValueError"""
-        incomplete = {'attendance': 80, 'homework': 70, 'quiz': 90}  # 缺 interaction
-        with pytest.raises(ValueError, match="interaction"):
+        incomplete = {'attendance': 80, 'homework': 70, 'quiz': 90, 'interaction': 60}  # 缺 final_exam
+        with pytest.raises(ValueError, match="final_exam"):
             WeightConfig.calculate_comprehensive_score(incomplete)
 
 
@@ -96,7 +97,8 @@ class TestGetColumnTitle:
     def test_column_titles_match_weights(self):
         """列标题中的百分比必须与实际权重一致"""
         titles = WeightConfig.get_score_column_titles()
-        assert titles['attendance'] == '出勤分(30%)'
-        assert titles['homework'] == '作业分(30%)'
-        assert titles['quiz'] == '测评分(30%)'
+        assert titles['attendance'] == '出勤分(20%)'
+        assert titles['homework'] == '作业分(20%)'
+        assert titles['quiz'] == '测评分(20%)'
+        assert titles['final_exam'] == '期末分(30%)'
         assert titles['interaction'] == '互动分(10%)'

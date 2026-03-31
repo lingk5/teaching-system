@@ -76,6 +76,31 @@ class Quiz(db.Model):
         }
 
 
+class FinalScore(db.Model):
+    """期末成绩记录表"""
+    __tablename__ = 'final_scores'
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    title = db.Column(db.String(100), nullable=False, comment='期末考试名称')
+    score = db.Column(db.Float, comment='得分')
+    max_score = db.Column(db.Float, default=100, comment='满分')
+    duration = db.Column(db.Integer, comment='用时（分钟）')
+    submit_time = db.Column(db.DateTime, comment='提交时间')
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'student_id': self.student_id,
+            'title': self.title,
+            'score': self.score,
+            'max_score': self.max_score,
+            'duration': self.duration
+        }
+
+
 class Interaction(db.Model):
     """课堂互动记录表"""
     __tablename__ = 'interactions'

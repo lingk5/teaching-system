@@ -70,7 +70,7 @@ def get_warnings():
         warnings = []
         for warning in pagination.items:
             # 获取学生信息
-            student = Student.query.get(warning.student_id)
+            student = db.session.get(Student, warning.student_id)
             student_name = student.name if student else '未知学生'
             student_no = student.student_no if student else ''
             class_name = student.class_.name if student and student.class_ else ''
@@ -156,13 +156,13 @@ def get_warnings():
 def get_warning_detail(warning_id):
     """获取预警详情"""
     try:
-        warning = Warning.query.get(warning_id)
+        warning = db.session.get(Warning, warning_id)
         if not warning:
             return jsonify({'success': False, 'message': '预警不存在'}), 404
         if not can_access_course(warning.course_id):
             return jsonify({'success': False, 'message': '无权访问该预警'}), 403
         
-        student = Student.query.get(warning.student_id)
+        student = db.session.get(Student, warning.student_id)
         student_name = student.name if student else '未知学生'
         student_no = student.student_no if student else ''
         class_name = student.class_.name if student and student.class_ else ''
@@ -208,7 +208,7 @@ def process_warning(warning_id):
         return jsonify({'success': False, 'message': '助教无权限处理预警'}), 403
 
     try:
-        warning = Warning.query.get(warning_id)
+        warning = db.session.get(Warning, warning_id)
         if not warning:
             return jsonify({'success': False, 'message': '预警不存在'}), 404
         if not can_access_course(warning.course_id):
@@ -269,7 +269,7 @@ def process_warning(warning_id):
 def get_warning_history(warning_id):
     """获取预警处理历史"""
     try:
-        warning = Warning.query.get(warning_id)
+        warning = db.session.get(Warning, warning_id)
         if not warning:
             return jsonify({'success': False, 'message': '预警不存在'}), 404
         if not can_access_course(warning.course_id):

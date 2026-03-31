@@ -1,6 +1,16 @@
 from sqlalchemy import func, case
 from datetime import datetime, timedelta
-from ..models import db, Student, Class, Warning, Attendance, Homework, Quiz, Interaction
+from ..models import (
+    db,
+    Student,
+    Class,
+    Warning,
+    Attendance,
+    Homework,
+    Quiz,
+    FinalScore,
+    Interaction,
+)
 from .weight_config import WeightConfig
 
 
@@ -31,7 +41,8 @@ class WarningEngine:
 
         if warnings_generated:
             db.session.bulk_save_objects(warnings_generated)
-            db.session.commit()
+
+        db.session.commit()
 
         return warnings_generated
 
@@ -71,6 +82,7 @@ class WarningEngine:
             'attendance':  self._calculate_attendance_score(student_id, start_date, end_date),
             'homework':    self._calculate_homework_score(student_id, start_date, end_date),
             'quiz':        self._calculate_quiz_score(student_id, start_date, end_date),
+            'final_exam':  self._calculate_final_exam_score(student_id, start_date, end_date),
             'interaction': self._calculate_interaction_score(student_id, start_date, end_date),
         }
 
@@ -111,6 +123,17 @@ class WarningEngine:
         ).scalar()
         return float(avg_score) if avg_score is not None else None
 
+    def _calculate_final_exam_score(self, student_id, start, end):
+        """期末分：按百分制折算"""
+        avg_score = db.session.query(
+            func.avg(FinalScore.score / FinalScore.max_score * 100)
+        ).filter(
+            FinalScore.student_id == student_id,
+            FinalScore.course_id == self.course_id,
+            FinalScore.created_at.between(start, end)
+        ).scalar()
+        return float(avg_score) if avg_score is not None else None
+
     def _calculate_interaction_score(self, student_id, start, end):
         """互动分：每次互动+10分，100分封顶"""
         count = db.session.query(func.sum(Interaction.count)).filter(
@@ -143,6 +166,7 @@ class WarningEngine:
             'attendance':  '出勤表现',
             'homework':    '作业成绩',
             'quiz':        '测验成绩',
+            'final_exam':  '期末成绩',
             'interaction': '课堂互动',
         }
 

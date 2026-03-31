@@ -10,11 +10,12 @@ class WeightConfig:
     """集中管理综合评分权重和预警阈值"""
 
     # ── 综合评分权重（总和必须为 1.0）──────────────────────────
-    # 出勤 30% + 作业 30% + 测验 30% + 互动 10%
+    # 出勤 20% + 作业 20% + 测验 20% + 期末 30% + 互动 10%
     COMPREHENSIVE_WEIGHTS = {
-        'attendance':  0.3,
-        'homework':    0.3,
-        'quiz':        0.3,
+        'attendance':  0.2,
+        'homework':    0.2,
+        'quiz':        0.2,
+        'final_exam':  0.3,
         'interaction': 0.1,
     }
 
@@ -33,8 +34,8 @@ class WeightConfig:
         """
         按权重计算综合评分。
 
-        :param metrics: 包含四个维度得分的字典，每项分值范围 0–100
-                        必须包含 'attendance', 'homework', 'quiz', 'interaction'
+        :param metrics: 包含五个维度得分的字典，每项分值范围 0–100
+                        必须包含 'attendance', 'homework', 'quiz', 'final_exam', 'interaction'
         :returns: 综合评分，浮点数，范围 0–100
         :raises ValueError: 当 metrics 缺少必要字段时
         """
@@ -112,6 +113,7 @@ class WeightConfig:
             'attendance':  '出勤分',
             'homework':    '作业分',
             'quiz':        '测评分',
+            'final_exam':  '期末分',
             'interaction': '互动分',
         }
         return {
@@ -128,5 +130,6 @@ class WeightConfig:
             f"出勤({int(w['attendance']*100)}%) + "
             f"作业({int(w['homework']*100)}%) + "
             f"测验({int(w['quiz']*100)}%) + "
+            f"期末({int(w['final_exam']*100)}%) + "
             f"互动({int(w['interaction']*100)}%)"
         )

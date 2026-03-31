@@ -19,7 +19,7 @@ os.environ["JWT_SECRET_KEY"] = "warning-test-jwt-secret"
 
 from app import create_app  # noqa: E402
 from app.models import db, User, Course, Class, Student, Warning  # noqa: E402
-from app.models.data import Attendance, Homework  # noqa: E402
+from app.models.data import Attendance, Homework, FinalScore  # noqa: E402
 from app.services.warning_engine import WarningEngine  # noqa: E402
 from app.services.weight_config import WeightConfig  # noqa: E402
 
@@ -86,6 +86,7 @@ class WarningCoverageRuleTests(unittest.TestCase):
             "attendance": 40,
             "homework": None,
             "quiz": None,
+            "final_exam": None,
             "interaction": None,
         }
 
@@ -94,13 +95,14 @@ class WarningCoverageRuleTests(unittest.TestCase):
 
         self.assertEqual(result, 40.0)
         self.assertEqual(coverage["covered_count"], 1)
-        self.assertEqual(coverage["missing_fields"], ["homework", "quiz", "interaction"])
+        self.assertEqual(coverage["missing_fields"], ["homework", "quiz", "final_exam", "interaction"])
 
     def test_no_available_metrics_returns_zero_score(self):
         metrics = {
             "attendance": None,
             "homework": None,
             "quiz": None,
+            "final_exam": None,
             "interaction": None,
         }
 
@@ -162,6 +164,36 @@ class WarningCoverageRuleTests(unittest.TestCase):
         self.assertEqual(warning.level, "red")
         self.assertEqual(warning.metrics["coverage"]["covered_count"], 2)
         self.assertEqual(warning.metrics["comprehensive_score"], 10.0)
+
+    def test_warning_engine_uses_final_exam_in_comprehensive_score(self):
+        db.session.add(
+            Attendance(
+                student_id=self.student_id,
+                course_id=self.course_id,
+                date=date.today(),
+                status="present",
+            )
+        )
+        db.session.add(
+            FinalScore(
+                student_id=self.student_id,
+                course_id=self.course_id,
+                title="期末考试",
+                score=0,
+                max_score=100,
+            )
+        )
+        db.session.commit()
+
+        engine = WarningEngine(self.course_id)
+        generated = engine.check_all_students()
+
+        self.assertEqual(len(generated), 1)
+        warning = Warning.query.one()
+        self.assertEqual(warning.level, "red")
+        self.assertEqual(warning.metrics["coverage"]["covered_count"], 2)
+        self.assertIn("final_exam", warning.metrics["coverage"]["covered_fields"])
+        self.assertEqual(warning.metrics["comprehensive_score"], 40.0)
 
     def test_warning_is_cleared_when_coverage_drops_below_threshold(self):
         db.session.add(

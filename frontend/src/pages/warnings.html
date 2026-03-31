@@ -100,7 +100,7 @@
         .warning-body { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
         .risk-section h5 { color: #dc2626; font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
         .risk-reason { color: #475569; line-height: 1.6; margin-bottom: 16px; }
-        .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .metrics-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
         .metric-box { background: #f8fafc; padding: 12px; border-radius: 10px; text-align: center; }
         .metric-value { font-size: 20px; font-weight: 700; color: #1e293b; }
         .metric-label { font-size: 12px; color: #64748b; margin-top: 4px; }
@@ -544,7 +544,16 @@
 
         function formatTime(t) { return new Date(t).toLocaleDateString(); }
         function renderMetricValue(value, suffix = '') { return value == null ? '-' : `${value}${suffix}`; }
-        function formatCoverageList(list) { return list && list.length ? list.join('、') : '无'; }
+        function formatCoverageList(list) {
+            const labelMap = {
+                attendance: '出勤',
+                homework: '作业',
+                quiz: '测验',
+                final_exam: '期末',
+                interaction: '互动'
+            };
+            return list && list.length ? list.map((item) => labelMap[item] || item).join('、') : '无';
+        }
 
         // --- 初始化加载逻辑 ---
         async function loadInitialData() {
@@ -613,11 +622,12 @@
                         <div class="metric-box"><div class="metric-value">${renderMetricValue(metrics.attendance, '%')}</div><div class="metric-label">出勤</div></div>
                         <div class="metric-box"><div class="metric-value">${renderMetricValue(metrics.homework)}</div><div class="metric-label">作业</div></div>
                         <div class="metric-box"><div class="metric-value">${renderMetricValue(metrics.quiz)}</div><div class="metric-label">测验</div></div>
+                        <div class="metric-box"><div class="metric-value">${renderMetricValue(metrics.final_exam)}</div><div class="metric-label">期末</div></div>
                         <div class="metric-box"><div class="metric-value">${renderMetricValue(metrics.interaction)}</div><div class="metric-label">互动</div></div>
                     </div>
                     <div class="alert alert-light border">
                         <div class="fw-semibold mb-2">覆盖率</div>
-                        <div class="small text-muted">已覆盖 ${coverage.covered_count ?? 0}/${coverage.total_count ?? 4} 项</div>
+                        <div class="small text-muted">已覆盖 ${coverage.covered_count ?? 0}/${coverage.total_count ?? 5} 项</div>
                         <div class="small text-muted mt-1">已覆盖指标：${formatCoverageList(coverage.covered_fields)}</div>
                         <div class="small text-muted mt-1">缺失指标：${formatCoverageList(coverage.missing_fields)}</div>
                     </div>

@@ -51,7 +51,7 @@ def get_courses():
         data = []
 
         for course in courses:
-            teacher = User.query.get(course.teacher_id) if course.teacher_id else None
+            teacher = db.session.get(User, course.teacher_id) if course.teacher_id else None
             assistant_rows = db.session.query(
                 AssistantCourseAssignment,
                 User.name,
@@ -148,7 +148,7 @@ def create_course():
     requester_id = current_user_id()
     teacher_id = requester_id if role == 'teacher' else payload.get('teacher_id', requester_id)
 
-    teacher = User.query.get(teacher_id)
+    teacher = db.session.get(User, teacher_id)
     if not teacher:
         return jsonify({'success': False, 'message': '教师用户不存在'}), 404
 
@@ -326,7 +326,7 @@ def manage_student(student_id):
     PUT: 修改基本信息
     DELETE: 删除学生
     """
-    student = Student.query.get(student_id)
+    student = db.session.get(Student, student_id)
     if not student:
         return jsonify({'success': False, 'message': '学生不存在'}), 404
 
@@ -379,7 +379,7 @@ def course_assistants(course_id):
     if not can_access_course(course_id):
         return jsonify({'success': False, 'message': '无权访问该课程'}), 403
 
-    course = Course.query.get(course_id)
+    course = db.session.get(Course, course_id)
     if not course:
         return jsonify({'success': False, 'message': '课程不存在'}), 404
 
@@ -413,7 +413,7 @@ def course_assistants(course_id):
 
     payload = request.get_json() or {}
     assistant_id = payload.get('assistant_id')
-    assistant = User.query.get(assistant_id)
+    assistant = db.session.get(User, assistant_id)
     if not assistant or assistant.role != 'assistant':
         return jsonify({'success': False, 'message': '助教账号不存在'}), 400
 
@@ -440,7 +440,7 @@ def delete_course_assistant(course_id, assistant_id):
     if not can_access_course(course_id):
         return jsonify({'success': False, 'message': '无权访问该课程'}), 403
 
-    course = Course.query.get(course_id)
+    course = db.session.get(Course, course_id)
     if not course:
         return jsonify({'success': False, 'message': '课程不存在'}), 404
 

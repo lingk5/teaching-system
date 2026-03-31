@@ -24,7 +24,7 @@
 ### 1.1 当前阶段判断
 
 - **总体阶段**: `Beta / 业务闭环已收口版本`
-- **真实状态**: 已完成“登录 -> 角色分流 -> 用户管理 -> 课程/班级 -> 学生 -> Excel 导入 -> 学情分析 -> 预警生成/处理 -> 导出”的主闭环；当前重点风险已从“功能缺失”转为“性能、搜索能力、期末成绩独立建模、部署规范化”
+- **真实状态**: 已完成“登录 -> 角色分流 -> 用户管理 -> 课程/班级 -> 学生 -> Excel 导入 -> 学情分析 -> 预警生成/处理 -> 导出”的主闭环；当前重点风险已从“功能缺失”转为“性能、搜索能力、部署规范化”
 - **数据库现状**: 代码默认连接 **MySQL**，`SQLite` 相关描述属于早期方案或论文表述，不能再作为当前部署基线
 - **文档结论**: 本项目目前适合课程设计/毕设演示与小范围试运行，不适合直接按“生产完成态”对外宣称
 
@@ -36,33 +36,33 @@
 | 用户管理 | ✅ 已完成 | 管理员专用 `users.html`、用户列表/创建/更新接口已恢复 | 仅管理员可见且默认跳转到该页 |
 | 课程管理 | ✅ 已完成 | 课程列表、创建课程、创建班级、助教指派已完成 | 统计无数据时显式返回空值，不再伪造 |
 | 学生管理 | ✅ 已完成 | 学生列表、添加、编辑、删除、详情弹窗已打通 | 搜索仍为前端内存过滤 |
-| 数据导入 | 🟡 基本完成 | 学生、考勤、作业、测验、互动导入与模板下载已实现 | 期末成绩仍复用测验导入逻辑 |
+| 数据导入 | ✅ 已完成 | 学生、考勤、作业、测验、期末、互动导入与模板下载已实现 | 期末成绩已独立建模并接入评分/预警 |
 | 智能预警 | ✅ 已完成 | 预警生成、列表、处理、历史记录已实现 | 当前按课程全量扫描，缺少缓存/批处理 |
 | 仪表盘 | ✅ 已完成 | 学生数、预警数、分布统计来自真实接口 | 趋势未实现时显示空状态，不再伪造 |
 | 学情分析 | ✅ 已完成 | 概览、班级筛选、学生画像、覆盖率展示已接真实接口 | 年级对比未实现时返回空数组 |
 | 导出报表 | ✅ 已完成 | 学生、成绩、考勤、预警导出已实现 | 权限与评分口径已与预警引擎统一 |
 | 环境与脚本 | ✅ 已完成 | `fix_env.py`、`start.sh`、`smart_start.sh`、MySQL 初始化文档已具备 | 启动脚本仍偏本地开发用法 |
-| 自动化测试 | ✅ 已建立基线 | 已补 `unittest` + `node:test` 回归集 | 当前为 29 条后端测试与 6 条前端测试 |
+| 自动化测试 | ✅ 已建立基线 | 已补 `unittest` + `node:test` 回归集 | 已覆盖角色权限、助教指派、覆盖率评分与期末成绩独立链路 |
 
 ### 1.3 已完成的关键开发细节
 
 - 后端已采用 Flask 蓝图拆分 `auth`、`courses`、`data`、`analytics`、`warnings`、`export`
-- 数据模型已拆分为 `User`、`Course`、`Class`、`Student`、`Attendance`、`Homework`、`Quiz`、`Interaction`、`Warning`、`AssistantCourseAssignment`
+- 数据模型已拆分为 `User`、`Course`、`Class`、`Student`、`Attendance`、`Homework`、`Quiz`、`FinalScore`、`Interaction`、`Warning`、`AssistantCourseAssignment`
 - 预警引擎 `WarningEngine` 已实现综合评分、等级判定、短板归因与建议生成
 - 已统一“课程数据范围解析”能力：`admin` 全量、`teacher` 仅本人课程、`assistant` 仅被分配课程
 - 已落地助教指派接口与课程页内嵌管理入口，不再停留在孤立模型阶段
-- 已统一评分字段命名为 `attendance/homework/quiz/interaction/comprehensive_score/coverage`
-- 已固定覆盖率规则：`0/4` 指标记 `0` 分，至少 `2/4` 指标才允许触发预警
+- 已统一评分字段命名为 `attendance/homework/quiz/final_exam/interaction/comprehensive_score/coverage`
+- 已固定覆盖率规则：`0/5` 指标记 `0` 分，至少 `2/5` 指标才允许触发预警
+- 已完成期末成绩独立建模、独立导入与导出报表同步，不再复用 `quiz`
 - 前端公共层已抽出 `config.js`、`request.js`、`auth.js`、`validator.js`
 - 已恢复管理员专用 `users.html` 页面与 `/api/auth/users*` 接口，支持用户列表、创建、更新、停用
 - 已建立基于 `permissions.py` + `auth.js` 的前后端统一角色能力矩阵：`admin / teacher / assistant`
 - `students.html`、`courses.html`、`warnings.html`、`data-import.html` 与真实 API 已有可运行联动
 - 导入流程已实现 Excel/CSV 解析、空行剔除、前后空格清洗、错误行收集与模板下载
-- 已建立自动化回归：当前为 29 条后端测试与 6 条前端测试，覆盖默认账号、角色权限、资源范围、助教指派、覆盖率预警规则与前端页面完整性
+- 已建立自动化回归，覆盖默认账号、角色权限、资源范围、助教指派、覆盖率预警规则、期末成绩独立链路与前端页面完整性
 
 ### 1.4 未完成与待收口项
 
-- 期末成绩未独立建模，前端仍将 `final` 映射为 `quiz` 导入
 - 学生检索、预警筛选、分页还没有形成统一的后端查询规范
 - 管理员页面已恢复，但用户管理功能目前仍是基础 CRUD，未扩展为审计日志、密码策略、批量操作
 - 仪表盘趋势与年级对比当前没有真实后端来源，因此以前端空状态替代，而非模拟数据
@@ -73,7 +73,6 @@
 | 风险项 | 影响 | 当前表现 |
 |--------|------|----------|
 | 查询与筛选能力有限 | 中 | 学生搜索、班级筛选、预警筛选仍偏基础，缺少统一后端检索规范 |
-| 期末成绩建模缺失 | 中高 | 目前仍复用 `quiz`，不利于论文与系统边界表达 |
 | 全量扫描性能风险 | 中 | 预警生成按课程逐人计算，数据规模上来后会变慢 |
 | 文档漂移 | 中 | 论文、架构文档、交接文档曾长期与实现脱节 |
 | 启动脚本安全性 | 中 | `smart_start.sh` 会直接 `kill -9` 端口占用进程，更适合本机开发而非共享环境 |
@@ -82,9 +81,9 @@
 
 1. 为预警引擎增加缓存、增量刷新或定时任务机制，降低全量扫描成本
 2. 将学生搜索、预警筛选、课程统计收敛到统一后端查询参数规范
-3. 为期末成绩建立独立模型与独立导入链路，避免继续复用 `quiz`
-4. 在现有回归集基础上继续补齐导入、导出、课程管理全链路自动化校验
-5. 清理长文档中的历史遗留章节，确保论文、交接文档与代码一致
+3. 在现有回归集基础上继续补齐导入、导出、课程管理全链路自动化校验
+4. 清理长文档中的历史遗留章节，确保论文、交接文档与代码一致
+5. 评估期末成绩纳入更多图表展示和统计查询的交互优化方案
 
 ---
 
@@ -155,7 +154,7 @@ teaching-system/
 │   │   │   ├── __init__.py        # 导出所有模型 (db 对象)
 │   │   │   ├── user.py            # User 模型 (教师用户)
 │   │   │   ├── course.py          # Course, Class, Student 模型
-│   │   │   ├── data.py            # Attendance, Homework, Quiz, Interaction 模型
+│   │   │   ├── data.py            # Attendance, Homework, Quiz, FinalScore, Interaction 模型
 │   │   │   └── warning.py         # Warning 预警模型
 │   │   ├── routes/                 # 路由控制器层 (Blueprint)
 │   │   │   ├── auth.py            # 认证相关 (/api/auth)
@@ -531,6 +530,7 @@ async _fetch(url, options = {}) {
 | POST | `/import/attendance` | 导入考勤数据 | `FormData(file, course_id)` | `{success_count, errors}` |
 | POST | `/import/homework` | 导入作业成绩 | `FormData(file, course_id)` | `{success_count, errors}` |
 | POST | `/import/quiz` | 导入测验成绩 | `FormData(file, course_id)` | `{success_count, errors}` |
+| POST | `/import/final_exam` | 导入期末成绩 | `FormData(file, course_id)` | `{success_count, errors}` |
 | GET | `/templates/:type` | 下载模板 | - | Excel文件流 |
 
 #### 数据分析 (`/api/analytics`)
@@ -583,6 +583,7 @@ async _fetch(url, options = {}) {
 | `attendances` | Attendance | 出勤记录 | student_id, date, status |
 | `homeworks` | Homework | 作业记录 | student_id, title, score |
 | `quizzes` | Quiz | 测验记录 | student_id, title, score |
+| `final_scores` | FinalScore | 期末成绩记录 | student_id, title, score |
 | `interactions` | Interaction | 课堂互动 | student_id, type, count |
 | `warnings` | Warning | 预警记录 | student_id, level, type, status, metrics |
 
