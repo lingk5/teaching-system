@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+
+  <defs>
+    <style>
+      .title { font: 700 28px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .subtitle { font: 15px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #555555; }
+      .actor { font: 700 18px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .text { font: 16px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .small { font: 14px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #222222; }
+      .table-title { font: 700 18px "Times New Roman", "PingFang SC", serif; fill: #111111; }
+      .field { font: 14px "Times New Roman", Consolas, monospace; fill: #111111; }
+      .frame { fill: #ffffff; stroke: #111111; stroke-width: 2; }
+      .thin { fill: #ffffff; stroke: #111111; stroke-width: 1.7; }
+      .line { stroke: #111111; stroke-width: 2; fill: none; }
+      .line-thin { stroke: #111111; stroke-width: 1.5; fill: none; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#111111" />
+    </marker>
+  </defs>
+
+  <rect width="1600" height="980" fill="#ffffff"/>
+  <text x="800.0" y="38" text-anchor="middle" class="title">图4.1 系统总体架构图</text>
+  
+<rect x="180" y="110" width="1240" height="80" class="frame"/><text x="800.0" y="140" text-anchor="middle" class="actor">用户访问层</text><text x="800.0" y="172" text-anchor="middle" class="text"><tspan x="800.0" dy="0">管理员 / 教师 / 助教</tspan></text><rect x="180" y="230" width="1240" height="105" class="frame"/><text x="800.0" y="260" text-anchor="middle" class="actor">前端页面层</text><text x="800.0" y="292" text-anchor="middle" class="text"><tspan x="800.0" dy="0">login.html / dashboard.html / courses.html / users.html</tspan><tspan x="800.0" dy="22">students.html / data-import.html / analytics.html / warnings.html</tspan></text><rect x="180" y="385" width="1240" height="95" class="frame"/><text x="800.0" y="415" text-anchor="middle" class="actor">前端脚本层</text><text x="800.0" y="447" text-anchor="middle" class="text"><tspan x="800.0" dy="0">auth.js / request.js / config.js</tspan><tspan x="800.0" dy="22">Bootstrap / Chart.js</tspan></text><rect x="180" y="530" width="1240" height="95" class="frame"/><text x="800.0" y="560" text-anchor="middle" class="actor">Flask 接口层</text><text x="800.0" y="592" text-anchor="middle" class="text"><tspan x="800.0" dy="0">认证模块 / 课程模块 / 数据导入模块</tspan><tspan x="800.0" dy="22">预警模块 / 分析模块 / 导出模块</tspan></text><rect x="180" y="675" width="1240" height="95" class="frame"/><text x="800.0" y="705" text-anchor="middle" class="actor">业务逻辑层</text><text x="800.0" y="737" text-anchor="middle" class="text"><tspan x="800.0" dy="0">权限矩阵 / 导入辅助 / WarningEngine / 统计逻辑 / JWT 鉴权</tspan></text><rect x="180" y="820" width="1240" height="115" class="frame"/><text x="800.0" y="850" text-anchor="middle" class="actor">数据持久层</text><text x="800.0" y="882" text-anchor="middle" class="text"><tspan x="800.0" dy="0">MySQL + SQLAlchemy ORM</tspan><tspan x="800.0" dy="22">Users / Courses / Classes / Students / Attendances / Homeworks / Quizzes / Interactions / Warnings</tspan></text><line x1="800" y1="190" x2="800" y2="230" class="line" marker-end="url(#arrow)"/><line x1="800" y1="335" x2="800" y2="385" class="line" marker-end="url(#arrow)"/><line x1="800" y1="480" x2="800" y2="530" class="line" marker-end="url(#arrow)"/><line x1="800" y1="625" x2="800" y2="675" class="line" marker-end="url(#arrow)"/><line x1="800" y1="770" x2="800" y2="820" class="line" marker-end="url(#arrow)"/>
+</svg>

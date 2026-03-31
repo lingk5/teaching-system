@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1040" viewBox="0 0 1600 1040">
+
+  <defs>
+    <style>
+      .title { font: 700 28px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .subtitle { font: 15px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #555555; }
+      .actor { font: 700 18px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .text { font: 16px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .small { font: 14px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #222222; }
+      .table-title { font: 700 18px "Times New Roman", "PingFang SC", serif; fill: #111111; }
+      .field { font: 14px "Times New Roman", Consolas, monospace; fill: #111111; }
+      .frame { fill: #ffffff; stroke: #111111; stroke-width: 2; }
+      .thin { fill: #ffffff; stroke: #111111; stroke-width: 1.7; }
+      .line { stroke: #111111; stroke-width: 2; fill: none; }
+      .line-thin { stroke: #111111; stroke-width: 1.5; fill: none; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#111111" />
+    </marker>
+  </defs>
+
+  <rect width="1600" height="1040" fill="#ffffff"/>
+  <text x="800.0" y="38" text-anchor="middle" class="title">图4.3 数据导入流程图</text>
+  
+<rect x="620" y="80" width="360" height="56" rx="10" ry="10" class="frame"/><text x="800.0" y="108" text-anchor="middle" class="text"><tspan x="800.0" dy="0">开始：准备导入文件</tspan></text><rect x="620" y="170" width="360" height="64" rx="10" ry="10" class="frame"/><text x="800.0" y="198" text-anchor="middle" class="text"><tspan x="800.0" dy="0">下载模板并填写 Excel</tspan></text><rect x="620" y="275" width="360" height="64" rx="10" ry="10" class="frame"/><text x="800.0" y="303" text-anchor="middle" class="text"><tspan x="800.0" dy="0">选择数据类型并上传文件</tspan></text><rect x="620" y="380" width="360" height="64" rx="10" ry="10" class="frame"/><text x="800.0" y="408" text-anchor="middle" class="text"><tspan x="800.0" dy="0">后端解析表格内容</tspan></text><rect x="620" y="485" width="360" height="64" rx="10" ry="10" class="frame"/><text x="800.0" y="513" text-anchor="middle" class="text"><tspan x="800.0" dy="0">字段校验与数据清洗</tspan></text><line x1="800" y1="136" x2="800" y2="170" class="line" marker-end="url(#arrow)"/><line x1="800" y1="234" x2="800" y2="275" class="line" marker-end="url(#arrow)"/><line x1="800" y1="339" x2="800" y2="380" class="line" marker-end="url(#arrow)"/><line x1="800" y1="444" x2="800" y2="485" class="line" marker-end="url(#arrow)"/><polygon points="800,580.0 940.0,640 800,700.0 660.0,640" class="frame"/><text x="800" y="630" text-anchor="middle" class="text"><tspan x="800" dy="0">数据是否</tspan><tspan x="800" dy="22">合法</tspan></text><line x1="800" y1="549" x2="800" y2="580" class="line" marker-end="url(#arrow)"/><rect x="200" y="760" width="340" height="72" rx="10" ry="10" class="frame"/><text x="370.0" y="788" text-anchor="middle" class="text"><tspan x="370.0" dy="0">记录错误信息</tspan><tspan x="370.0" dy="22">返回失败明细</tspan></text><rect x="1060" y="760" width="340" height="72" rx="10" ry="10" class="frame"/><text x="1230.0" y="788" text-anchor="middle" class="text"><tspan x="1230.0" dy="0">写入数据库</tspan><tspan x="1230.0" dy="22">返回成功结果</tspan></text><line x1="660" y1="640" x2="540" y2="640" class="line" marker-end="url(#arrow)"/><line x1="540" y1="640" x2="540" y2="760" class="line" marker-end="url(#arrow)"/><text x="590" y="626" class="small">否</text><line x1="940" y1="640" x2="1060" y2="640" class="line" marker-end="url(#arrow)"/><line x1="1060" y1="640" x2="1060" y2="760" class="line" marker-end="url(#arrow)"/><text x="1008" y="626" class="small">是</text><rect x="620" y="905" width="360" height="64" rx="10" ry="10" class="frame"/><text x="800.0" y="933" text-anchor="middle" class="text"><tspan x="800.0" dy="0">用户查看导入反馈</tspan></text><line x1="540" y1="832" x2="540" y2="937" class="line"/><line x1="540" y1="937" x2="620" y2="937" class="line" marker-end="url(#arrow)"/><line x1="1060" y1="832" x2="1060" y2="937" class="line"/><line x1="1060" y1="937" x2="980" y2="937" class="line" marker-end="url(#arrow)"/>
+</svg>

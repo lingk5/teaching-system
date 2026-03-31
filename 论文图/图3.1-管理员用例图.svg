@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720">
+
+  <defs>
+    <style>
+      .title { font: 700 28px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .subtitle { font: 15px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #555555; }
+      .actor { font: 700 18px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .text { font: 16px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .small { font: 14px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #222222; }
+      .table-title { font: 700 18px "Times New Roman", "PingFang SC", serif; fill: #111111; }
+      .field { font: 14px "Times New Roman", Consolas, monospace; fill: #111111; }
+      .frame { fill: #ffffff; stroke: #111111; stroke-width: 2; }
+      .thin { fill: #ffffff; stroke: #111111; stroke-width: 1.7; }
+      .line { stroke: #111111; stroke-width: 2; fill: none; }
+      .line-thin { stroke: #111111; stroke-width: 1.5; fill: none; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#111111" />
+    </marker>
+  </defs>
+
+  <rect width="1600" height="720" fill="#ffffff"/>
+  <text x="800.0" y="38" text-anchor="middle" class="title">图3.1-管理员用例图</text>
+  
+
+  <circle cx="190" cy="310" r="22" class="thin"/>
+  <line x1="190" y1="332" x2="190" y2="400" class="line"/>
+  <line x1="158" y1="356" x2="222" y2="356" class="line"/>
+  <line x1="190" y1="400" x2="162" y2="442" class="line"/>
+  <line x1="190" y1="400" x2="218" y2="442" class="line"/>
+  <text x="190" y="476" text-anchor="middle" class="actor">管理员</text><rect x="350" y="100" width="1080" height="500" class="frame"/><text x="890" y="132" text-anchor="middle" class="actor">教学效果监督系统</text><ellipse cx="620" cy="180" rx="112" ry="40" class="thin"/><text x="620" y="186" text-anchor="middle" class="text"><tspan x="620" dy="0">登录系统</tspan></text><line x1="222" y1="356" x2="508" y2="180" class="line-thin"/><ellipse cx="900" cy="180" rx="112" ry="40" class="thin"/><text x="900" y="186" text-anchor="middle" class="text"><tspan x="900" dy="0">用户管理</tspan></text><line x1="222" y1="356" x2="788" y2="180" class="line-thin"/><ellipse cx="1180" cy="180" rx="112" ry="40" class="thin"/><text x="1180" y="186" text-anchor="middle" class="text"><tspan x="1180" dy="0">课程管理</tspan></text><line x1="222" y1="356" x2="1068" y2="180" class="line-thin"/><ellipse cx="620" cy="340" rx="112" ry="40" class="thin"/><text x="620" y="346" text-anchor="middle" class="text"><tspan x="620" dy="0">学生管理</tspan></text><line x1="222" y1="356" x2="508" y2="340" class="line-thin"/><ellipse cx="900" cy="340" rx="112" ry="40" class="thin"/><text x="900" y="346" text-anchor="middle" class="text"><tspan x="900" dy="0">数据导入</tspan></text><line x1="222" y1="356" x2="788" y2="340" class="line-thin"/><ellipse cx="1180" cy="340" rx="112" ry="40" class="thin"/><text x="1180" y="346" text-anchor="middle" class="text"><tspan x="1180" dy="0">查看学情分析</tspan></text><line x1="222" y1="356" x2="1068" y2="340" class="line-thin"/><ellipse cx="620" cy="500" rx="112" ry="40" class="thin"/><text x="620" y="506" text-anchor="middle" class="text"><tspan x="620" dy="0">查看预警</tspan></text><line x1="222" y1="356" x2="508" y2="500" class="line-thin"/><ellipse cx="900" cy="500" rx="112" ry="40" class="thin"/><text x="900" y="506" text-anchor="middle" class="text"><tspan x="900" dy="0">处理预警</tspan></text><line x1="222" y1="356" x2="788" y2="500" class="line-thin"/><ellipse cx="1180" cy="500" rx="112" ry="40" class="thin"/><text x="1180" y="506" text-anchor="middle" class="text"><tspan x="1180" dy="0">导出报表</tspan></text><line x1="222" y1="356" x2="1068" y2="500" class="line-thin"/>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1140" viewBox="0 0 1600 1140">
+
+  <defs>
+    <style>
+      .title { font: 700 28px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .subtitle { font: 15px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #555555; }
+      .actor { font: 700 18px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .text { font: 16px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .small { font: 14px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #222222; }
+      .table-title { font: 700 18px "Times New Roman", "PingFang SC", serif; fill: #111111; }
+      .field { font: 14px "Times New Roman", Consolas, monospace; fill: #111111; }
+      .frame { fill: #ffffff; stroke: #111111; stroke-width: 2; }
+      .thin { fill: #ffffff; stroke: #111111; stroke-width: 1.7; }
+      .line { stroke: #111111; stroke-width: 2; fill: none; }
+      .line-thin { stroke: #111111; stroke-width: 1.5; fill: none; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#111111" />
+    </marker>
+  </defs>
+
+  <rect width="1600" height="1140" fill="#ffffff"/>
+  <text x="800.0" y="38" text-anchor="middle" class="title">图4.4 预警生成与处理流程图</text>
+  
+<rect x="620" y="80" width="360" height="56" rx="10" ry="10" class="frame"/><text x="800.0" y="108" text-anchor="middle" class="text"><tspan x="800.0" dy="0">开始：触发预警计算</tspan></text><rect x="620" y="170" width="360" height="64" rx="10" ry="10" class="frame"/><text x="800.0" y="198" text-anchor="middle" class="text"><tspan x="800.0" dy="0">读取课程及学生列表</tspan></text><rect x="620" y="275" width="360" height="72" rx="10" ry="10" class="frame"/><text x="800.0" y="303" text-anchor="middle" class="text"><tspan x="800.0" dy="0">聚合出勤、作业、</tspan><tspan x="800.0" dy="22">测验、互动数据</tspan></text><rect x="620" y="390" width="360" height="64" rx="10" ry="10" class="frame"/><text x="800.0" y="418" text-anchor="middle" class="text"><tspan x="800.0" dy="0">计算综合分并判定等级</tspan></text><line x1="800" y1="136" x2="800" y2="170" class="line" marker-end="url(#arrow)"/><line x1="800" y1="234" x2="800" y2="275" class="line" marker-end="url(#arrow)"/><line x1="800" y1="347" x2="800" y2="390" class="line" marker-end="url(#arrow)"/><polygon points="800,491.0 960.0,555 800,619.0 640.0,555" class="frame"/><text x="800" y="545" text-anchor="middle" class="text"><tspan x="800" dy="0">是否达到</tspan><tspan x="800" dy="22">预警条件</tspan></text><line x1="800" y1="454" x2="800" y2="491" class="line" marker-end="url(#arrow)"/><rect x="180" y="700" width="350" height="76" rx="10" ry="10" class="frame"/><text x="355.0" y="728" text-anchor="middle" class="text"><tspan x="355.0" dy="0">不生成预警</tspan><tspan x="355.0" dy="22">结束当前学生计算</tspan></text><rect x="1070" y="700" width="350" height="76" rx="10" ry="10" class="frame"/><text x="1245.0" y="728" text-anchor="middle" class="text"><tspan x="1245.0" dy="0">生成或更新</tspan><tspan x="1245.0" dy="22">预警记录</tspan></text><line x1="640" y1="555" x2="530" y2="555" class="line" marker-end="url(#arrow)"/><line x1="530" y1="555" x2="530" y2="700" class="line" marker-end="url(#arrow)"/><text x="580" y="542" class="small">否</text><line x1="960" y1="555" x2="1070" y2="555" class="line" marker-end="url(#arrow)"/><line x1="1070" y1="555" x2="1070" y2="700" class="line" marker-end="url(#arrow)"/><text x="1012" y="542" class="small">是</text><rect x="1070" y="835" width="350" height="64" rx="10" ry="10" class="frame"/><text x="1245.0" y="863" text-anchor="middle" class="text"><tspan x="1245.0" dy="0">预警中心展示列表</tspan></text><rect x="1070" y="930" width="350" height="64" rx="10" ry="10" class="frame"/><text x="1245.0" y="958" text-anchor="middle" class="text"><tspan x="1245.0" dy="0">查看原因与处理建议</tspan></text><rect x="1070" y="1025" width="350" height="64" rx="10" ry="10" class="frame"/><text x="1245.0" y="1053" text-anchor="middle" class="text"><tspan x="1245.0" dy="0">提交处理结果并更新状态</tspan></text><line x1="1245" y1="776" x2="1245" y2="835" class="line" marker-end="url(#arrow)"/><line x1="1245" y1="899" x2="1245" y2="930" class="line" marker-end="url(#arrow)"/><line x1="1245" y1="994" x2="1245" y2="1025" class="line" marker-end="url(#arrow)"/>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1740" height="470" viewBox="0 0 1740 470">
+
+  <defs>
+    <style>
+      .title { font: 700 28px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .subtitle { font: 15px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #555555; }
+      .actor { font: 700 18px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .text { font: 16px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #111111; }
+      .small { font: 14px "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #222222; }
+      .table-title { font: 700 18px "Times New Roman", "PingFang SC", serif; fill: #111111; }
+      .field { font: 14px "Times New Roman", Consolas, monospace; fill: #111111; }
+      .frame { fill: #ffffff; stroke: #111111; stroke-width: 2; }
+      .thin { fill: #ffffff; stroke: #111111; stroke-width: 1.7; }
+      .line { stroke: #111111; stroke-width: 2; fill: none; }
+      .line-thin { stroke: #111111; stroke-width: 1.5; fill: none; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#111111" />
+    </marker>
+  </defs>
+
+  <rect width="1740" height="470" fill="#ffffff"/>
+  <text x="870.0" y="38" text-anchor="middle" class="title">图4.2 系统功能层次图</text>
+  
+<rect x="610" y="80" width="380" height="70" class="frame"/><text x="800" y="124" text-anchor="middle" class="actor">教学效果监督系统</text><rect x="50" y="250" width="240" height="170" class="frame"/><text x="170.0" y="280" text-anchor="middle" class="actor">登录认证与权限</text><text x="170.0" y="312" text-anchor="middle" class="text"><tspan x="170.0" dy="0">登录</tspan><tspan x="170.0" dy="22">JWT 鉴权</tspan><tspan x="170.0" dy="22">角色控制</tspan></text><line x1="800" y1="150" x2="170.0" y2="250" class="line-thin"/><rect x="330" y="250" width="240" height="170" class="frame"/><text x="450.0" y="280" text-anchor="middle" class="actor">基础数据管理</text><text x="450.0" y="312" text-anchor="middle" class="text"><tspan x="450.0" dy="0">用户管理</tspan><tspan x="450.0" dy="22">课程管理</tspan><tspan x="450.0" dy="22">班级管理</tspan><tspan x="450.0" dy="22">学生管理</tspan></text><line x1="800" y1="150" x2="450.0" y2="250" class="line-thin"/><rect x="610" y="250" width="240" height="170" class="frame"/><text x="730.0" y="280" text-anchor="middle" class="actor">数据导入</text><text x="730.0" y="312" text-anchor="middle" class="text"><tspan x="730.0" dy="0">学生导入</tspan><tspan x="730.0" dy="22">考勤导入</tspan><tspan x="730.0" dy="22">作业导入</tspan><tspan x="730.0" dy="22">测验导入</tspan><tspan x="730.0" dy="22">互动导入</tspan></text><line x1="800" y1="150" x2="730.0" y2="250" class="line-thin"/><rect x="890" y="250" width="240" height="170" class="frame"/><text x="1010.0" y="280" text-anchor="middle" class="actor">预警管理</text><text x="1010.0" y="312" text-anchor="middle" class="text"><tspan x="1010.0" dy="0">预警生成</tspan><tspan x="1010.0" dy="22">预警查看</tspan><tspan x="1010.0" dy="22">预警处理</tspan></text><line x1="800" y1="150" x2="1010.0" y2="250" class="line-thin"/><rect x="1170" y="250" width="240" height="170" class="frame"/><text x="1290.0" y="280" text-anchor="middle" class="actor">学情分析</text><text x="1290.0" y="312" text-anchor="middle" class="text"><tspan x="1290.0" dy="0">仪表盘</tspan><tspan x="1290.0" dy="22">班级分析</tspan><tspan x="1290.0" dy="22">学生画像</tspan></text><line x1="800" y1="150" x2="1290.0" y2="250" class="line-thin"/><rect x="1450" y="250" width="240" height="170" class="frame"/><text x="1570.0" y="280" text-anchor="middle" class="actor">数据导出</text><text x="1570.0" y="312" text-anchor="middle" class="text"><tspan x="1570.0" dy="0">学生名单导出</tspan><tspan x="1570.0" dy="22">成绩导出</tspan><tspan x="1570.0" dy="22">考勤导出</tspan><tspan x="1570.0" dy="22">预警导出</tspan></text><line x1="800" y1="150" x2="1570.0" y2="250" class="line-thin"/>
+</svg>
