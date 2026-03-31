@@ -7,16 +7,12 @@ from ..utils.import_helpers import (
     ImportHelper, StudentImporter, AttendanceImporter, 
     HomeworkImporter, QuizImporter, InteractionImporter
 )
+from ..utils.permissions import current_user_can
 import pandas as pd
 import os
 
 data_bp = Blueprint('data', __name__)
 helper = ImportHelper()
-
-
-def _current_role():
-    claims = get_jwt()
-    return (claims.get('role') or 'teacher').lower()
 
 
 # ================ 单条数据添加接口 ================
@@ -25,7 +21,7 @@ def _current_role():
 @jwt_required()
 def add_attendance():
     """单条添加出勤记录"""
-    if _current_role() == 'assistant':
+    if not current_user_can('import_data'):
         return jsonify({'success': False, 'message': '助教无权限写入数据'}), 403
 
     data = request.get_json()
@@ -47,7 +43,7 @@ def add_attendance():
 @jwt_required()
 def add_homework():
     """单条添加作业记录"""
-    if _current_role() == 'assistant':
+    if not current_user_can('import_data'):
         return jsonify({'success': False, 'message': '助教无权限写入数据'}), 403
 
     data = request.get_json()
@@ -70,7 +66,7 @@ def add_homework():
 @jwt_required()
 def add_quiz():
     """单条添加测验记录"""
-    if _current_role() == 'assistant':
+    if not current_user_can('import_data'):
         return jsonify({'success': False, 'message': '助教无权限写入数据'}), 403
 
     data = request.get_json()
@@ -93,7 +89,7 @@ def add_quiz():
 @jwt_required()
 def add_interaction():
     """单条添加互动记录"""
-    if _current_role() == 'assistant':
+    if not current_user_can('import_data'):
         return jsonify({'success': False, 'message': '助教无权限写入数据'}), 403
 
     data = request.get_json()
@@ -120,6 +116,9 @@ def import_data(data_type):
     批量导入数据（Excel/CSV）
     data_type: students / attendance / homework / quiz / final_exam / interactions
     """
+    if not current_user_can('import_data'):
+        return jsonify({'success': False, 'message': '助教无权限导入数据'}), 403
+
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': '没有上传文件'}), 400
 
@@ -280,6 +279,9 @@ def import_scores_api():
     """
     成绩数据导入API - 智能判断是作业还是测验
     """
+    if not current_user_can('import_data'):
+        return jsonify({'success': False, 'message': '助教无权限导入数据'}), 403
+
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': '没有上传文件'}), 400
 
@@ -340,6 +342,9 @@ def import_scores_api():
 @jwt_required()
 def import_courses_api():
     """课程数据导入API"""
+    if not current_user_can('manage_courses'):
+        return jsonify({'success': False, 'message': '助教无权限导入课程'}), 403
+
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': '没有上传文件'}), 400
 
@@ -434,5 +439,3 @@ def import_courses_api():
             'message': f'导入失败：{str(e)}',
             'error_type': type(e).__name__
         }), 500
-    if _current_role() == 'assistant':
-        return jsonify({'success': False, 'message': '助教无权限导入数据'}), 403

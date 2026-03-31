@@ -261,7 +261,7 @@
             <select class="form-select" style="width: 200px;" id="classFilter" onchange="handleClassChange()">
                 <option value="">请先选择班级</option>
             </select>
-            <button class="btn btn-primary" onclick="showAddStudentModal()">
+            <button class="btn btn-primary" data-capability="manage_students" onclick="showAddStudentModal()">
                 <i class="bi bi-plus-circle me-1"></i>添加学生
             </button>
         </div>
@@ -331,7 +331,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="addStudent()">添加</button>
+                    <button type="button" class="btn btn-primary" data-capability="manage_students" onclick="addStudent()">添加</button>
                 </div>
             </div>
         </div>
@@ -368,7 +368,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="updateStudent()">保存修改</button>
+                    <button type="button" class="btn btn-primary" data-capability="manage_students" onclick="updateStudent()">保存修改</button>
                 </div>
             </div>
         </div>
@@ -486,14 +486,17 @@
                         <div><span class="warning-badge ${badgeClass}">${badgeText}</span></div>
                         <div class="action-btns">
                             <button class="btn-action btn-view" onclick="viewStudent(${s.id})">详情</button>
-                            <button class="btn-action btn-edit" onclick="editStudent(${s.id})">编辑</button>
-                            <button class="btn-action btn-delete" onclick="deleteStudent(${s.id})">删除</button>
+                            <button class="btn-action btn-edit" data-capability="manage_students" onclick="editStudent(${s.id})">编辑</button>
+                            <button class="btn-action btn-delete" data-capability="manage_students" onclick="deleteStudent(${s.id})">删除</button>
                         </div>
                     </div>
                 `;
             }).join('');
             
             container.innerHTML = html;
+            if (typeof applyRoleUI === 'function') {
+                applyRoleUI();
+            }
         }
 
         function renderEmpty() {
@@ -582,13 +585,16 @@
                         <div><span class="warning-badge ${badgeClass}">${badgeText}</span></div>
                         <div class="action-btns">
                             <button class="btn-action btn-view" onclick="viewStudent(${s.id})">详情</button>
-                            <button class="btn-action btn-edit" onclick="editStudent(${s.id})">编辑</button>
-                            <button class="btn-action btn-delete" onclick="deleteStudent(${s.id})">删除</button>
+                            <button class="btn-action btn-edit" data-capability="manage_students" onclick="editStudent(${s.id})">编辑</button>
+                            <button class="btn-action btn-delete" data-capability="manage_students" onclick="deleteStudent(${s.id})">删除</button>
                         </div>
                     </div>
                 `;
             }).join('');
             container.innerHTML = html;
+            if (typeof applyRoleUI === 'function') {
+                applyRoleUI();
+            }
         }
 
         function updateStats() {

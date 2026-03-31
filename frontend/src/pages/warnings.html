@@ -285,7 +285,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="submitProcess()">提交处理</button>
+                    <button type="button" class="btn btn-primary" data-capability="process_warnings" onclick="submitProcess()">提交处理</button>
                 </div>
             </div>
         </div>
@@ -508,11 +508,14 @@
                         </div>
                     </div>
                     ${!isResolved ? `<div class="warning-actions">
-                        <button class="btn-process" onclick="openProcessModal(${w.id})">处理</button>
+                        <button class="btn-process" data-capability="process_warnings" onclick="openProcessModal(${w.id})">处理</button>
                     </div>` : ''}
                 </div>`;
             }).join('');
             container.innerHTML = html;
+            if (typeof applyRoleUI === 'function') {
+                applyRoleUI();
+            }
         }
 
         function updateStats(stats) {

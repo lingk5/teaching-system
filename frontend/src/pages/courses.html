@@ -169,7 +169,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="addClass()">添加</button>
+                    <button type="button" class="btn btn-primary" data-capability="manage_courses" onclick="addClass()">添加</button>
                 </div>
             </div>
         </div>
@@ -180,7 +180,7 @@
         <div class="page-header">
             <h2><i class="bi bi-book me-2 text-primary"></i>课程管理</h2>
             <p>管理您的课程、班级及学生信息</p>
-            <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+            <button class="btn btn-primary mt-3" data-capability="manage_courses" data-bs-toggle="modal" data-bs-target="#createCourseModal">
                 <i class="bi bi-plus-circle me-2"></i>创建新课程
             </button>
         </div>
@@ -219,7 +219,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="createCourse()">创建</button>
+                    <button type="button" class="btn btn-primary" data-capability="manage_courses" onclick="createCourse()">创建</button>
                 </div>
             </div>
         </div>
@@ -426,7 +426,7 @@
                                 : '<div style="color: #94a3b8; padding: 12px; text-align: center;">暂无班级数据</div>'
                             }
                         </div>
-                        <button class="btn btn-secondary btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#addClassModal" onclick="setCurrentCourse(${course.id})">
+                        <button class="btn btn-secondary btn-sm mt-3" data-capability="manage_courses" data-bs-toggle="modal" data-bs-target="#addClassModal" onclick="setCurrentCourse(${course.id})">
                             <i class="bi bi-plus-circle me-1"></i>添加班级
                         </button>
                     </div>
@@ -434,6 +434,9 @@
             `).join('');
             
             document.getElementById('courseList').innerHTML = html;
+            if (typeof applyRoleUI === 'function') {
+                applyRoleUI();
+            }
         }
         
         // 展开/折叠班级列表 (简单的 DOM 操作)

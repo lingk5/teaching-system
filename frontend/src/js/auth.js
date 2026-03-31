@@ -12,6 +12,21 @@ const ROLE_ALLOWED_PAGES = {
     assistant: new Set(['dashboard.html', 'courses.html', 'students.html', 'analytics.html', 'warnings.html', 'index.html'])
 };
 
+const ROLE_CAPABILITIES = {
+    admin: new Set(['manage_users', 'manage_courses', 'manage_students', 'import_data', 'process_warnings', 'generate_warnings']),
+    teacher: new Set(['manage_courses', 'manage_students', 'import_data', 'process_warnings', 'generate_warnings']),
+    assistant: new Set([])
+};
+
+const NAV_PAGE_MAP = {
+    'nav-dashboard': 'dashboard.html',
+    'nav-courses': 'courses.html',
+    'nav-students': 'students.html',
+    'nav-import': 'data-import.html',
+    'nav-analytics': 'analytics.html',
+    'nav-warnings': 'warnings.html'
+};
+
 function getCurrentPageName() {
     const path = window.location.pathname || '';
     return path.split('/').pop() || 'dashboard.html';
@@ -19,6 +34,15 @@ function getCurrentPageName() {
 
 function normalizeRole(role) {
     return (role || 'teacher').toLowerCase();
+}
+
+function getStoredUser() {
+    try {
+        const userInfoStr = localStorage.getItem('userInfo');
+        return userInfoStr ? JSON.parse(userInfoStr) : {};
+    } catch (e) {
+        return {};
+    }
 }
 
 function getRoleHomePage(role) {
@@ -30,6 +54,17 @@ function canRoleAccessPage(role, pageName) {
     const normalized = normalizeRole(role);
     const allowSet = ROLE_ALLOWED_PAGES[normalized] || ROLE_ALLOWED_PAGES.teacher;
     return allowSet.has(pageName);
+}
+
+function roleHasCapability(role, capability) {
+    const normalized = normalizeRole(role);
+    const capabilitySet = ROLE_CAPABILITIES[normalized] || new Set();
+    return capabilitySet.has(capability);
+}
+
+function currentUserCan(capability) {
+    const user = getStoredUser();
+    return roleHasCapability(user.role, capability);
 }
 
 function checkAuth() {
@@ -66,7 +101,12 @@ function checkAuth() {
         return false;
     }
 
-    applyRoleUI();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyRoleUI, { once: true });
+    } else {
+        applyRoleUI();
+    }
+
     return true;
 }
 
@@ -106,8 +146,7 @@ function getUserRoleText(role) {
 
 function loadUserInfoToUI() {
     try {
-        const userInfoStr = localStorage.getItem('userInfo');
-        const user = userInfoStr ? JSON.parse(userInfoStr) : {};
+        const user = getStoredUser();
         
         // 更新用户名
         const userNameEl = document.getElementById('userName');
@@ -126,13 +165,7 @@ function loadUserInfoToUI() {
 }
 
 function applyRoleUI() {
-    const userInfoStr = localStorage.getItem('userInfo');
-    let user = {};
-    try {
-        user = userInfoStr ? JSON.parse(userInfoStr) : {};
-    } catch (e) {
-        user = {};
-    }
+    const user = getStoredUser();
     const role = normalizeRole(user.role);
 
     const userRoleEl = document.getElementById('userRole');
@@ -140,23 +173,22 @@ function applyRoleUI() {
         userRoleEl.textContent = getUserRoleText(role);
     }
 
-    if (role !== 'admin') {
-        document.querySelectorAll('[data-role="admin-only"]').forEach((el) => {
-            el.style.display = 'none';
+    Object.entries(NAV_PAGE_MAP).forEach(([elementId, pageName]) => {
+        document.querySelectorAll(`#${elementId}`).forEach((el) => {
+            el.style.display = canRoleAccessPage(role, pageName) ? '' : 'none';
         });
-    }
+    });
+
+    document.querySelectorAll('[data-capability]').forEach((el) => {
+        const capability = el.dataset?.capability;
+        if (!capability) {
+            return;
+        }
+
+        el.style.display = roleHasCapability(role, capability) ? '' : 'none';
+    });
 
     if (role === 'assistant') {
-        document.querySelectorAll('#nav-import').forEach((el) => {
-            el.style.display = 'none';
-        });
-        document.querySelectorAll('[data-role="import"]').forEach((el) => {
-            el.style.display = 'none';
-        });
-        document.querySelectorAll('[data-role="manage"]').forEach((el) => {
-            el.style.display = 'none';
-        });
-        // 兼容旧页面尚未打 data-role 的按钮
         document.querySelectorAll(
             'button[onclick*="checkWarnings"], ' +
             'button[onclick*="showAddStudentModal"], ' +
@@ -164,7 +196,9 @@ function applyRoleUI() {
             'button[onclick*="editStudent"], ' +
             'button[onclick*="deleteStudent"], ' +
             'button[onclick*="addClass"], ' +
-            'button[onclick*="createCourse"]'
+            'button[onclick*="createCourse"], ' +
+            'button[onclick*="openProcessModal"], ' +
+            'button[onclick*="submitProcess"]'
         ).forEach((el) => {
             el.style.display = 'none';
         });

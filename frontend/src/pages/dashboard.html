@@ -148,7 +148,7 @@
                     <button class="btn btn-primary btn-sm" onclick="refreshData()">
                         <i class="bi bi-arrow-clockwise me-1"></i>刷新数据
                     </button>
-                    <button class="btn btn-outline-danger btn-sm" onclick="checkWarnings()">
+                    <button class="btn btn-outline-danger btn-sm" data-capability="generate_warnings" onclick="checkWarnings()">
                         <i class="bi bi-lightning-charge me-1"></i>生成预警
                     </button>
                 </div>
@@ -196,7 +196,7 @@
         </div>
 
         <!-- admin 专属：教师数 + 课程数 统计行（非 admin 时隐藏） -->
-        <div class="row g-4 mb-4" id="adminStatsRow" style="display:none;">
+        <div class="row g-4 mb-4" id="adminStatsRow" data-capability="manage_users" style="display:none;">
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="stat-icon bg-warning bg-opacity-10 text-warning">

@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, redirect
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, jwt_required
 from datetime import datetime
 import os
 from dotenv import load_dotenv
@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 from .routes.export import export_bp
+from .utils.permissions import current_user_can
 
 
 # 初始化扩展（放在全局，但要在 create_app 中 init）
@@ -175,6 +176,7 @@ def create_app():
         })
 
     @app.route('/api/status')
+    @jwt_required()
     def status():
         # 基础计数
         total_attendance = Attendance.query.count()
@@ -195,17 +197,12 @@ def create_app():
         normal_count = max(total_students - warn_red - warn_orange - warn_yellow, 0)
 
         stats = {
-            'users':           User.query.count(),
-            'courses':         Course.query.count(),
-            'classes':         Class.query.count(),
             'students':        total_students,
             'attendances':     total_attendance,
             'homeworks':       total_homework,
             'quizzes':         Quiz.query.count(),
-            'interactions':    Interaction.query.count(),
             'warnings':        Warning.query.count(),
-            # 新增：仪表盘卡片需要的聚合字段
-            'attendance_rate': attendance_rate,   # None 表示暂无数据
+            'attendance_rate': attendance_rate,
             'homework_rate':   homework_rate,
             'warning_distribution': {
                 'red':    warn_red,
@@ -214,6 +211,14 @@ def create_app():
                 'normal': normal_count
             }
         }
+
+        if current_user_can('manage_users'):
+            stats.update({
+                'users':        User.query.count(),
+                'courses':      Course.query.count(),
+                'classes':      Class.query.count(),
+                'interactions': Interaction.query.count(),
+            })
         return jsonify({
             "status": "running",
             "database": detect_database_name(app.config.get('SQLALCHEMY_DATABASE_URI')),
